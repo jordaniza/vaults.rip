@@ -14,10 +14,10 @@ export async function GET() {
 
   const caseRows = cases.map(
     (entry) =>
-      `| [${entry.data.title}](https://www.vaults.rip/content/cases/${entry.id}.md) | ${entry.data.protocol ?? ""} | ${entry.data.component} | ${entry.data.riskType} |`,
+      `| ${entry.data.caseId} | [${entry.data.title}](https://www.vaults.rip/content/cases/${entry.id}.md) | ${entry.data.protocol} | ${entry.data.component} |`,
   );
   const caseTable = [
-    "| Case | Protocol | Component | Risk type |",
+    "| Case ID | Case | Protocol | Component |",
     "| --- | --- | --- | --- |",
     ...caseRows,
   ].join("\n");

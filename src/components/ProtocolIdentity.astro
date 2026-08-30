@@ -1,0 +1,27 @@
+---
+interface Props {
+  protocol: string | null;
+  size?: "index" | "detail";
+}
+
+const { protocol, size = "index" } = Astro.props;
+const protocolLogos: Record<string, string> = {
+  Morpho: "/protocols/morpho.svg",
+};
+const logo = protocol ? protocolLogos[protocol] : undefined;
+---
+
+{
+  logo ? (
+    <img
+      class:list={["protocol-logo", `protocol-logo--${size}`]}
+      src={logo}
+      alt={protocol ?? ""}
+      title={protocol ?? undefined}
+      width={size === "detail" ? 34 : 28}
+      height={size === "detail" ? 32 : 26}
+    />
+  ) : (
+    <span>{protocol ?? ""}</span>
+  )
+}

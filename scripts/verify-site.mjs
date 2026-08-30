@@ -12,17 +12,13 @@ const caseHeadingOrder = [
   "Summary",
   "Context",
   "Where it goes wrong",
-  "Proof of concept",
-  "In the wild",
-  "How to spot it",
-  "How to fix it",
+  "Example",
+  "How to address",
 ];
 const requiredCaseHeadings = new Set([
   "Summary",
-  "Where it goes wrong",
-  "Proof of concept",
-  "How to spot it",
-  "How to fix it",
+  "Example",
+  "How to address",
 ]);
 
 function fail(message) {
@@ -82,6 +78,13 @@ function parseFrontmatter(markdown, fileName) {
 
 function escapeRegularExpression(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function toSlug(value) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 async function resolveOutputReference(sourceFile, reference) {
@@ -167,31 +170,67 @@ if (readmeAbout?.trim() !== expectedReadmeAbout) {
 const caseFiles = (await walk(casesRoot)).filter((filePath) =>
   filePath.endsWith(".md"),
 );
-const caseSlugs = [];
+const casePaths = [];
+const caseIds = new Set();
+const protocolCaseNumbers = new Map();
 
 for (const caseFile of caseFiles) {
   const relativeCaseFile = path.relative(casesRoot, caseFile);
+  const caseSegments = relativeCaseFile.split(path.sep);
 
-  if (relativeCaseFile.includes(path.sep)) {
-    fail(`Case Markdown must be a direct child of content/cases/: ${relativeCaseFile}`);
+  if (caseSegments.length !== 2) {
+    fail(
+      `Case Markdown must use content/cases/<protocol>/<number>.md: ${relativeCaseFile}`,
+    );
     continue;
   }
 
-  const slug = path.basename(caseFile, ".md");
+  const [protocolSlug, caseFileName] = caseSegments;
+  const caseNumber = path.basename(caseFileName, ".md");
+  const casePath = `${protocolSlug}/${caseNumber}`;
   const markdown = await readFile(caseFile, "utf8");
   const frontmatter = parseFrontmatter(markdown, relativeCaseFile);
-  caseSlugs.push(slug);
+  casePaths.push(casePath);
 
-  for (const field of ["title", "protocol", "component", "riskType"]) {
+  const protocolNumbers = protocolCaseNumbers.get(protocolSlug) ?? [];
+  protocolNumbers.push(Number(caseNumber));
+  protocolCaseNumbers.set(protocolSlug, protocolNumbers);
+
+  for (const field of ["title", "caseId", "protocol", "component"]) {
     if (!frontmatter.has(field)) {
       fail(`${relativeCaseFile} is missing the ${field} frontmatter field.`);
     }
   }
 
-  for (const field of ["title", "component", "riskType"]) {
+  for (const field of ["title", "caseId", "protocol", "component"]) {
     if (!frontmatter.get(field)) {
       fail(`${relativeCaseFile} has an empty ${field} frontmatter field.`);
     }
+  }
+
+  if (!/^[a-z0-9-]+$/.test(protocolSlug)) {
+    fail(`${relativeCaseFile} has an invalid protocol directory.`);
+  }
+
+  if (!/^[1-9]\d*$/.test(caseNumber)) {
+    fail(`${relativeCaseFile} must use a positive, unpadded case number.`);
+  }
+
+  const expectedCaseId = `${protocolSlug}${caseNumber}`;
+  const caseId = frontmatter.get("caseId");
+
+  if (caseId !== expectedCaseId) {
+    fail(
+      `${relativeCaseFile} must use caseId: ${expectedCaseId} to match its path.`,
+    );
+  } else if (caseIds.has(caseId)) {
+    fail(`${relativeCaseFile} duplicates caseId: ${caseId}.`);
+  } else {
+    caseIds.add(caseId);
+  }
+
+  if (toSlug(frontmatter.get("protocol") ?? "") !== protocolSlug) {
+    fail(`${relativeCaseFile} protocol does not match its directory.`);
   }
 
   let previousHeadingPosition = -1;
@@ -213,14 +252,37 @@ for (const caseFile of caseFiles) {
     }
   }
 
-  await requireFile(
-    path.join(outputRoot, "cases", slug, "index.html"),
-    `rendered case page for ${slug}`,
+  const rawCasePath = path.join(
+    outputRoot,
+    "content",
+    "cases",
+    protocolSlug,
+    `${caseNumber}.md`,
   );
+
   await requireFile(
-    path.join(outputRoot, "content", "cases", `${slug}.md`),
-    `raw case Markdown for ${slug}`,
+    path.join(outputRoot, "cases", protocolSlug, caseNumber, "index.html"),
+    `rendered case page for ${casePath}`,
   );
+
+  if (await requireFile(rawCasePath, `raw case Markdown for ${casePath}`)) {
+    const rawCase = await readFile(rawCasePath, "utf8");
+
+    if (!rawCase.includes(`Case ID: ${caseId}`)) {
+      fail(`Raw case Markdown is missing Case ID: ${caseId}.`);
+    }
+  }
+}
+
+for (const [protocolSlug, numbers] of protocolCaseNumbers) {
+  numbers.sort((left, right) => left - right);
+
+  for (const [index, number] of numbers.entries()) {
+    if (number !== index + 1) {
+      fail(`${protocolSlug} case numbers must increase from 1 without gaps.`);
+      break;
+    }
+  }
 }
 
 const publicCaseAssetsRoot = path.join(publicRoot, "content", "cases");
@@ -230,9 +292,10 @@ if (await exists(publicCaseAssetsRoot)) {
 
   for (const assetFile of caseAssetFiles) {
     const relativeAsset = path.relative(publicCaseAssetsRoot, assetFile);
-    const [assetCaseSlug] = relativeAsset.split(path.sep);
+    const assetSegments = relativeAsset.split(path.sep);
+    const assetCasePath = assetSegments.slice(0, 2).join("/");
 
-    if (!caseSlugs.includes(assetCaseSlug)) {
+    if (assetSegments.length < 3 || !casePaths.includes(assetCasePath)) {
       fail(`Orphaned case asset without matching Markdown: ${relativeAsset}`);
     }
 
@@ -258,6 +321,17 @@ for (const assetName of [
   }
 }
 
+const designMorphoLogo = await readFile(
+  path.join(repositoryRoot, "design", "protocols", "morpho.svg"),
+);
+const publicMorphoLogo = await readFile(
+  path.join(publicRoot, "protocols", "morpho.svg"),
+);
+
+if (!designMorphoLogo.equals(publicMorphoLogo)) {
+  fail("Public Morpho logo has drifted from design/protocols/morpho.svg.");
+}
+
 for (const outputFile of [
   "index.html",
   "llms.txt",
@@ -272,13 +346,13 @@ const generatedContentIndex = await readFile(
   "utf8",
 );
 
-for (const slug of caseSlugs) {
-  if (!generatedHomepage.includes(`/cases/${slug}/`)) {
-    fail(`Homepage is missing generated case link: ${slug}`);
+for (const casePath of casePaths) {
+  if (!generatedHomepage.includes(`/cases/${casePath}/`)) {
+    fail(`Homepage is missing generated case link: ${casePath}`);
   }
 
-  if (!generatedContentIndex.includes(`/content/cases/${slug}.md`)) {
-    fail(`Raw content index is missing generated case link: ${slug}`);
+  if (!generatedContentIndex.includes(`/content/cases/${casePath}.md`)) {
+    fail(`Raw content index is missing generated case link: ${casePath}`);
   }
 }
 
@@ -307,6 +381,6 @@ if (failures.length > 0) {
   process.exitCode = 1;
 } else {
   console.log(
-    `Site verification passed: ${caseSlugs.length} case, generated routes, content placement, and internal links are valid.`,
+    `Site verification passed: ${casePaths.length} case, generated routes, content placement, and internal links are valid.`,
   );
 }

@@ -14,9 +14,9 @@ const cases = defineCollection({
   }),
   schema: z.object({
     title: z.string(),
-    protocol: z.string().nullable().default(null),
+    caseId: z.string().regex(/^[a-z][a-z0-9-]*\d+$/),
+    protocol: z.string().min(1),
     component: z.string(),
-    riskType: z.string(),
   }),
 });
 

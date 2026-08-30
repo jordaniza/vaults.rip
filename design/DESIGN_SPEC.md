@@ -61,10 +61,9 @@ Prefer:
 
 "About"
 "Cases"
-"Oracle price manipulation"
-"Examples"
-"How to mitigate"
-"How to check"
+"Custom oracle control"
+"Example"
+"How to address"
 "References"
 
 Do not try to make these headings more interesting.
@@ -151,7 +150,7 @@ Use a simple table.
 
 Columns:
 
-Case | Protocol | Component | Risk type
+Case | Protocol | Component
 
 Protocol should preferably be represented by its recognizable logo.
 
@@ -169,7 +168,7 @@ No sidebar.
 
 No dashboard.
 
-No table of contents unless the document becomes genuinely long enough to need one.
+Use a compact, generated table of contents near the top of each case page. It should link only to sections present in that case and remain visually secondary to the case title and content.
 
 Use one vertically flowing reading column.
 
@@ -177,15 +176,13 @@ Typical structure:
 
 Title
 
-Protocol / Component / Risk type
+Protocol / Component
 
 Description
 
-Examples
+Example
 
-How to mitigate
-
-How to check
+How to address
 
 References, source or repository where relevant
 
@@ -193,7 +190,7 @@ Machine-readable Markdown link at the bottom where useful.
 
 Sections remain vertically stacked even on wide displays.
 
-Do not place "How to mitigate" beside "How to check" to save space.
+Keep every case section in one vertical reading column.
 
 ---
 

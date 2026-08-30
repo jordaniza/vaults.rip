@@ -8,7 +8,7 @@
 
 ## How content is organised
 
-The website content link is the entry point for both general information and cases. Case pages use stable headings for the failure mechanism, proof, detection, and mitigation. Prefer the linked raw Markdown documents when ingesting or analysing case content.
+The website content link is the entry point for both general information and cases. Cases are grouped by protocol and have stable IDs such as `morpho1`; their titles may change without changing their ID or URL. Case pages use stable headings for the failure mechanism, proof, detection, and mitigation. Prefer the linked raw Markdown documents when ingesting or analysing case content.
 
 ## Source
 

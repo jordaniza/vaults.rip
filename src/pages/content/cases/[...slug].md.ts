@@ -14,10 +14,10 @@ export const getStaticPaths = (async () => {
 export const GET: APIRoute = ({ props }) => {
   const entry = props.entry as CollectionEntry<"cases">;
   const metadata = [
-    entry.data.protocol ? `Protocol: ${entry.data.protocol}` : null,
+    `Case ID: ${entry.data.caseId}`,
+    `Protocol: ${entry.data.protocol}`,
     `Component: ${entry.data.component}`,
-    `Risk type: ${entry.data.riskType}`,
-  ].filter(Boolean);
+  ];
   const content = [
     `# ${entry.data.title}`,
     metadata.join("\n"),

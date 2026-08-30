@@ -4,8 +4,9 @@
 
 - Read `design/DESIGN_SPEC.md` before changing any user-facing page. Content takes precedence over interface, and invented marketing copy is prohibited.
 - Canonical homepage prose lives only in `content/index.md`.
-- Canonical case research lives only in `content/cases/<slug>.md`.
+- Canonical case research lives only in `content/cases/<protocol>/<number>.md`.
 - Do not duplicate the case index in `content/index.md`, `README.md`, or `public/llms.txt`. Astro generates it from case frontmatter.
+- Keep `caseId` in the generated raw case directory and raw case document, but do not display internal IDs in the human homepage table.
 - `README.md` intentionally repeats the homepage About copy for repository visitors. Check it for drift whenever `content/index.md` changes; `pnpm verify` enforces this.
 - Start machine-oriented discovery at `public/llms.txt`, served as `/llms.txt`. Keep it as a small map to `/content/index.md`, not a manually maintained list of cases.
 
@@ -16,49 +17,54 @@ The project is a static Astro site configured by `astro.config.mjs` and built wi
 `src/content.config.ts` is the only content collection definition:
 
 - `pages` loads `content/*.md`. The entry ID `index` represents `content/index.md`.
-- `cases` loads `content/cases/**/*.md`, retains the raw body for machine-readable endpoints, and validates `title`, `protocol`, `component`, and `riskType`.
+- `cases` loads `content/cases/**/*.md`, retains the raw body for machine-readable endpoints, and validates `title`, `caseId`, `protocol`, and `component`.
 
 The build flow is:
 
 1. Astro syncs and validates the Markdown collections.
 2. `src/pages/index.astro` calls `getEntry("pages", "index")`, renders the homepage prose, and builds the case table from `getCollection("cases")`.
-3. `src/pages/cases/[slug].astro` calls `getStaticPaths()` over the cases collection and renders one human-readable page per entry.
+3. `src/pages/cases/[...slug].astro` calls `getStaticPaths()` over the cases collection and renders one human-readable page per entry.
 4. `src/pages/content/index.md.ts` generates the raw homepage document plus the current case directory.
-5. `src/pages/content/cases/[slug].md.ts` generates one complete raw Markdown document per case.
+5. `src/pages/content/cases/[...slug].md.ts` generates one complete raw Markdown document per case.
 6. Astro copies `public/` unchanged into `dist/` and emits the rendered HTML and generated Markdown routes.
 
 Do not bypass the collections by reading Markdown with ad hoc filesystem code in page components. Do not put substantive copy directly into Astro templates.
 
+Case-page navigation is generated from the rendered Markdown `##` headings in `src/pages/cases/[...slug].astro`. Do not maintain a separate contents list in case frontmatter or Markdown.
+
 ## Page hierarchy
 
-| Public route                    | Generated from                                                   |
-| ------------------------------- | ---------------------------------------------------------------- |
-| `/`                             | `content/index.md`, case frontmatter, `src/pages/index.astro`    |
-| `/cases/<slug>/`                | `content/cases/<slug>.md`, `src/pages/cases/[slug].astro`        |
-| `/content/index.md`             | Both collections through `src/pages/content/index.md.ts`         |
-| `/content/cases/<slug>.md`      | The matching case through `src/pages/content/cases/[slug].md.ts` |
-| `/llms.txt`                     | `public/llms.txt`                                                |
-| `/design/<asset>`               | `public/design/<asset>`                                          |
-| `/content/cases/<slug>/<asset>` | `public/content/cases/<slug>/<asset>`                            |
+| Public route                                  | Generated from                                                                 |
+| --------------------------------------------- | ------------------------------------------------------------------------------ |
+| `/`                                           | `content/index.md`, case frontmatter, `src/pages/index.astro`                  |
+| `/cases/<protocol>/<number>/`                 | Case Markdown through `src/pages/cases/[...slug].astro`                       |
+| `/content/index.md`                           | Both collections through `src/pages/content/index.md.ts`                       |
+| `/content/cases/<protocol>/<number>.md`       | The matching case through `src/pages/content/cases/[...slug].md.ts`            |
+| `/llms.txt`                                   | `public/llms.txt`                                                              |
+| `/design/<asset>`                             | `public/design/<asset>`                                                        |
+| `/content/cases/<protocol>/<number>/<asset>`  | `public/content/cases/<protocol>/<number>/<asset>`                             |
 
 Routes ending in `.md` or `.txt` do not use trailing slashes. Human-readable case routes do.
 
 ## Content placement
 
 - Put homepage copy in `content/index.md`.
-- Put each case in a direct child Markdown file named `content/cases/<kebab-case-slug>.md`. Do not nest the Markdown file inside its asset directory.
-- Every case must include the frontmatter fields `title`, `protocol`, `component`, and `riskType`. `protocol` may be blank; the other fields may not.
-- Keep case sections in this order: Summary, Context, Where it goes wrong, Proof of concept, In the wild, How to spot it, and How to fix it. Context and In the wild are optional when the case has no useful material for them; the other five sections are required. If the content model changes, update the templates, documentation, and verifier together.
-- Put stable case-specific images and downloads in `public/content/cases/<slug>/`. Reference them from Markdown with the public root path `/content/cases/<slug>/<filename>` so both people and raw-content consumers resolve the same asset.
+- Put each case at `content/cases/<protocol>/<number>.md`. Use a lowercase protocol slug and an unpadded positive integer starting at `1`; assign the next number within that protocol for each new case.
+- Every case must include non-empty `title`, `caseId`, `protocol`, and `component` frontmatter. `caseId` is the protocol slug followed by its number, such as `morpho1`, and must not change when the title changes.
+- Keep case sections in this order: Summary, Context, Where it goes wrong, Example, and How to address. Context and Where it goes wrong are optional when they do not add useful information; Summary, Example, and How to address are required. If the content model changes, update the templates, documentation, and verifier together.
+- Put stable case-specific images and downloads in `public/content/cases/<protocol>/<number>/`. Reference them from Markdown with the matching public root path so both people and raw-content consumers resolve the same asset.
 - Keep canonical design sources in `design/`. The logo and social preview used at runtime have matching copies in `public/design/`; update both together.
+- Keep protocol logo sources in `design/protocols/` with matching runtime copies in `public/protocols/`. `src/components/ProtocolIdentity.astro` maps frontmatter protocol names to those assets and falls back to text for an unmapped protocol.
 - Shared HTML and SEO belong in `src/layouts/BaseLayout.astro`. Shared visual rules belong in `src/styles/global.css`.
 
 ## Link and route rules
 
-- Link human readers to `/cases/<slug>/` and machine consumers to `/content/cases/<slug>.md`.
+- Link human readers to `/cases/<protocol>/<number>/` and machine consumers to `/content/cases/<protocol>/<number>.md`.
 - Link only to routes Astro generates or files that exist under `public/`.
 - Keep the repository URL as `https://github.com/jordaniza/vaults.rip` and open it in a new tab in the website interface.
+- `src/layouts/BaseLayout.astro` opens rendered external HTTP(S) links in new tabs and adds `noopener noreferrer`; keep authored Markdown links as ordinary Markdown rather than duplicating target attributes in raw HTML.
 - The homepage compatibility redirect for legacy `/?case=<slug>` URLs lives in `src/pages/index.astro`; do not use query-string URLs for new links.
+- Keep redirects for renamed case routes in `astro.config.mjs` so existing human and machine-readable links do not break.
 - Never link to source filesystem paths such as `src/pages/...`, `content/...`, or `public/...` as though they were public URLs.
 
 ## Required verification

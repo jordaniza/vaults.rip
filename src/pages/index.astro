@@ -1,5 +1,6 @@
 ---
 import { getCollection, getEntry, render } from "astro:content";
+import ProtocolIdentity from "../components/ProtocolIdentity.astro";
 import BaseLayout from "../layouts/BaseLayout.astro";
 
 const homepage = await getEntry("pages", "index");
@@ -28,7 +29,6 @@ const cases = (await getCollection("cases")).sort((left, right) =>
             <th scope="col">Case</th>
             <th scope="col">Protocol</th>
             <th scope="col">Component</th>
-            <th scope="col">Risk type</th>
           </tr>
         </thead>
         <tbody>
@@ -36,9 +36,10 @@ const cases = (await getCollection("cases")).sort((left, right) =>
             cases.map((entry) => (
               <tr>
                 <td><a href={`/cases/${entry.id}/`}>{entry.data.title}</a></td>
-                <td>{entry.data.protocol ?? ""}</td>
+                <td class="protocol-cell">
+                  <ProtocolIdentity protocol={entry.data.protocol} />
+                </td>
                 <td>{entry.data.component}</td>
-                <td>{entry.data.riskType}</td>
               </tr>
             ))
           }
@@ -50,7 +51,7 @@ const cases = (await getCollection("cases")).sort((left, right) =>
   <script is:inline>
     const legacyCase = new URLSearchParams(window.location.search).get("case");
 
-    if (legacyCase && /^[a-z0-9-]+$/.test(legacyCase)) {
+    if (legacyCase && /^[a-z0-9-]+(?:\/[a-z0-9-]+)*$/.test(legacyCase)) {
       window.location.replace(`/cases/${legacyCase}/`);
     }
   </script>

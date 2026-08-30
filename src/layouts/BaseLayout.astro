@@ -111,5 +111,37 @@ const structuredData = {
         >
       </div>
     </footer>
+
+    <script is:inline>
+      document.querySelectorAll(".case-content pre").forEach((codeBlock, index) => {
+        const disclosure = document.createElement("details");
+        const summary = document.createElement("summary");
+        const showLabel = document.createElement("span");
+        const hideLabel = document.createElement("span");
+
+        disclosure.className = "code-disclosure";
+        codeBlock.id ||= `case-code-${index + 1}`;
+        summary.setAttribute("aria-controls", codeBlock.id);
+        summary.setAttribute("aria-expanded", "false");
+        showLabel.className = "code-disclosure__show";
+        showLabel.textContent = "Show code";
+        hideLabel.className = "code-disclosure__hide";
+        hideLabel.textContent = "Hide code";
+        summary.append(showLabel, hideLabel);
+        disclosure.addEventListener("toggle", () => {
+          summary.setAttribute("aria-expanded", String(disclosure.open));
+        });
+
+        codeBlock.before(disclosure);
+        disclosure.append(summary, codeBlock);
+      });
+
+      document
+        .querySelectorAll('a[href^="https://"], a[href^="http://"]')
+        .forEach((link) => {
+          link.target = "_blank";
+          link.relList.add("noopener", "noreferrer");
+        });
+    </script>
   </body>
 </html>

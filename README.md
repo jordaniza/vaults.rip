@@ -24,29 +24,29 @@ Ask your LLM to read the repository's [agent guidance](./AGENTS.md), or read [CO
 
 ## Page hierarchy
 
-| URL                             | Purpose                                                 | Source                                                            |
-| ------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------- |
-| `/`                             | About copy and the generated case index                 | `content/index.md`, `content/cases/*.md`, `src/pages/index.astro` |
-| `/cases/<slug>/`                | Human-readable case page                                | `content/cases/<slug>.md`, `src/pages/cases/[slug].astro`         |
-| `/content/index.md`             | Raw homepage copy and generated case directory for LLMs | `src/pages/content/index.md.ts`                                   |
-| `/content/cases/<slug>.md`      | Complete raw case Markdown with metadata                | `content/cases/<slug>.md`, `src/pages/content/cases/[slug].md.ts` |
-| `/llms.txt`                     | Small machine-readable entry point                      | `public/llms.txt`                                                 |
-| `/design/<asset>`               | Logo and social preview assets used by the site         | `public/design/`                                                  |
-| `/content/cases/<slug>/<asset>` | Stable, unprocessed case media                          | `public/content/cases/<slug>/`                                    |
+| URL                                           | Purpose                                                 | Source                                                                          |
+| --------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `/`                                           | About copy and the generated case index                 | `content/index.md`, `content/cases/**/*.md`, `src/pages/index.astro`            |
+| `/cases/<protocol>/<number>/`                 | Human-readable case page                                | `content/cases/<protocol>/<number>.md`, `src/pages/cases/[...slug].astro`       |
+| `/content/index.md`                           | Raw homepage copy and generated case directory for LLMs | `src/pages/content/index.md.ts`                                                 |
+| `/content/cases/<protocol>/<number>.md`       | Complete raw case Markdown with metadata                | Case Markdown and `src/pages/content/cases/[...slug].md.ts`                     |
+| `/llms.txt`                                   | Small machine-readable entry point                      | `public/llms.txt`                                                               |
+| `/design/<asset>`                             | Logo and social preview assets used by the site         | `public/design/`                                                                |
+| `/content/cases/<protocol>/<number>/<asset>`  | Stable, unprocessed case media                          | `public/content/cases/<protocol>/<number>/`                                     |
 
-The case index is generated from case frontmatter. It is intentionally not duplicated in `content/index.md`, `README.md`, or `llms.txt`.
+The case index is generated from case frontmatter. It is intentionally not duplicated in `content/index.md`, `README.md`, or `llms.txt`. The human index omits internal IDs; the raw `/content/index.md` directory includes each stable `caseId` for machine consumers.
 
 ## Content and build flow
 
 `src/content.config.ts` defines two Astro collections:
 
 - `pages` reads top-level Markdown from `content/`. The `index` entry supplies homepage prose.
-- `cases` reads Markdown from `content/cases/` and validates `title`, `protocol`, `component`, and `riskType` frontmatter.
+- `cases` reads Markdown from `content/cases/` and validates `title`, `caseId`, `protocol`, and `component` frontmatter.
 
 Astro renders those collections in three places:
 
 1. `src/pages/index.astro` renders the homepage copy and generates its case table.
-2. `src/pages/cases/[slug].astro` uses `getStaticPaths()` to generate one HTML page for every case.
+2. `src/pages/cases/[...slug].astro` uses `getStaticPaths()` to generate one HTML page for every case.
 3. The endpoints under `src/pages/content/` generate the raw Markdown directory and one raw Markdown document per case.
 
 Files in `public/` are copied unchanged to the root of the production build. Global presentation and SEO live in `src/layouts/BaseLayout.astro` and `src/styles/global.css`; substantive copy does not.
@@ -54,13 +54,16 @@ Files in `public/` are copied unchanged to the root of the production build. Glo
 ## Where files belong
 
 - Homepage prose: `content/index.md`
-- One case: `content/cases/<kebab-case-slug>.md`
-- Case-specific images or downloads: `public/content/cases/<slug>/`
+- One case: `content/cases/<protocol>/<number>.md`
+- Case-specific images or downloads: `public/content/cases/<protocol>/<number>/`
 - Design source files: `design/`
 - Design assets required by the website: matching files in `public/design/`
+- Protocol logo sources: `design/protocols/`, with matching runtime copies in `public/protocols/`
 - Machine-readable entry point: `public/llms.txt`
 
-Case Markdown uses this standard order: Summary, Context, Where it goes wrong, Proof of concept, In the wild, How to spot it, and How to fix it. Context and In the wild may be omitted when the case has no useful material for them. The other five sections are required.
+Case numbers are unpadded, increase independently within each protocol, and start at `1`. The protocol slug and number form a stable ID: `content/cases/morpho/1.md` uses `caseId: morpho1` and routes to `/cases/morpho/1/`. Keep the path and `caseId` unchanged when editing a case title.
+
+Case Markdown uses this standard order: Summary, Context, Where it goes wrong, Example, and How to address. Context and Where it goes wrong may be omitted when they do not add useful information. Summary, Example, and How to address are required.
 
 ## Development and verification
 
