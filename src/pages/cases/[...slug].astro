@@ -22,7 +22,7 @@ const { Content, headings } = await render(entry);
 const contents = headings.filter((heading) => heading.depth === 2);
 const markdownPath = `/content/cases/${entry.id}.md`;
 const markdownHref = import.meta.env.DEV
-  ? markdownPath
+  ? `${markdownPath}?raw`
   : new URL(markdownPath, Astro.site).toString();
 const summary = entry.body
   ?.match(/## Summary\s+([\s\S]*?)(?=\n## |$)/)?.[1]
