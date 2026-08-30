@@ -4,17 +4,73 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#080d13" />
+    <meta name="robots" content="index, follow" />
     <meta
       name="description"
-      content="A technical knowledge base for DeFi vault and market risk."
+      content="A catalogue of experiments documenting how DeFi vault operators can misconfigure vaults, for due diligence, underwriting, and LLM-friendly workflows."
     />
-    <title>vaults.rip</title>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="vaults.rip" />
+    <meta property="og:url" content="https://vaults.rip/" />
+    <meta
+      property="og:title"
+      content="vaults.rip — DeFi vault misconfiguration cases"
+    />
+    <meta
+      property="og:description"
+      content="A catalogue of experiments documenting how DeFi vault operators can misconfigure vaults, for due diligence, underwriting, and LLM-friendly workflows."
+    />
+    <meta
+      property="og:image"
+      content="https://vaults.rip/design/vaults-rip-social-preview.png?v=2"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="vaults.rip — A collection of different ways a DeFi vault can be misconfigured."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="vaults.rip — DeFi vault misconfiguration cases"
+    />
+    <meta
+      name="twitter:description"
+      content="A catalogue of experiments documenting how DeFi vault operators can misconfigure vaults, for due diligence, underwriting, and LLM-friendly workflows."
+    />
+    <meta
+      name="twitter:image"
+      content="https://vaults.rip/design/vaults-rip-social-preview.png?v=2"
+    />
+    <meta
+      name="twitter:image:alt"
+      content="vaults.rip — A collection of different ways a DeFi vault can be misconfigured."
+    />
+    <title>vaults.rip — DeFi vault misconfiguration cases</title>
+    <link rel="canonical" href="https://vaults.rip/" />
+    <link
+      rel="icon"
+      type="image/png"
+      href="./design/vaults-rip-logo.png?v=2"
+    />
+    <link rel="apple-touch-icon" href="./design/vaults-rip-logo.png?v=2" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Source+Sans+3:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "vaults.rip",
+        "url": "https://vaults.rip/",
+        "description": "A catalogue of experiments documenting how DeFi vault operators can misconfigure vaults, for due diligence, underwriting, and LLM-friendly workflows.",
+        "sameAs": ["https://github.com/jordaniza/vaults.rip"]
+      }
+    </script>
     <style>
       :root {
         color-scheme: dark;
@@ -108,7 +164,10 @@
       }
 
       .wordmark {
+        display: inline-flex;
         flex: 0 0 auto;
+        align-items: center;
+        gap: 12px;
         color: var(--text-primary);
         font-family: var(--font-editorial);
         font-size: 30px;
@@ -120,6 +179,12 @@
 
       .wordmark:hover {
         text-decoration: none;
+      }
+
+      .brand-icon {
+        width: 36px;
+        height: 36px;
+        object-fit: contain;
       }
 
       .site-nav ul {
@@ -195,6 +260,10 @@
 
       p + p {
         margin-top: 20px;
+      }
+
+      .prose p + p {
+        margin-top: 32px;
       }
 
       h1 + p,
@@ -276,6 +345,15 @@
         font-size: 15px;
       }
 
+      .footer-inner a {
+        color: var(--text-muted);
+        text-decoration: none;
+      }
+
+      .footer-inner a:hover {
+        color: var(--accent);
+      }
+
       @media (max-width: 720px) {
         .page-shell {
           width: calc(100% - 48px);
@@ -350,80 +428,49 @@
 
     <header class="site-header">
       <div class="page-shell header-inner">
-        <a class="wordmark" href="./index.html" aria-label="vaults.rip home"
-          >vaults.rip</a
-        >
+        <a class="wordmark" href="./index.html" aria-label="vaults.rip home">
+          <img
+            class="brand-icon"
+            src="./design/vaults-rip-logo.png?v=2"
+            width="36"
+            height="36"
+            alt=""
+          />
+          <span>vaults.rip</span>
+        </a>
         <nav class="site-nav" aria-label="Primary navigation">
           <ul>
             <li><a href="#cases">Cases</a></li>
             <li><a href="#about">About</a></li>
             <li>
-              <span class="nav-pending">llms.txt</span>
+              <a href="./llms.txt">llms.txt</a>
             </li>
             <li>
-              <span class="nav-pending">GitHub</span>
+              <a
+                href="https://github.com/jordaniza/vaults.rip"
+                target="_blank"
+                rel="noopener noreferrer"
+                >GitHub</a
+              >
             </li>
           </ul>
         </nav>
       </div>
     </header>
 
-    <main id="main-content" class="page-shell">
-      <section id="about" class="prose" aria-labelledby="about-title">
-        <h2 id="about-title">About</h2>
-        <p>
-          vaults.rip is a collection of different ways a DeFi vault can be
-          misconfigured.
-        </p>
-        <h3>Why</h3>
-        <p>
-          I realised after years of depositing into Morpho vaults that I had a
-          fairly surface-level understanding of the various controls curators
-          have to direct vault capital.
-          <br /><br />
-          The minimal design of Morpho vaults is very much optimised for
-          security and govenrance minimisation, which shifts a lot of the burden
-          to the user/curator. I wanted to document as many ways as I could that
-          vault operators could misconfigure a vault, and either accidentally or
-          intentionally lose my money.
-          <br /><br />
-          This site is a catalogue of those experiments.
-        </p>
-        <h3>Using</h3>
-        <p>
-          It's intended to be open-source, free, and LLM friendly so people can
-          use in their own workflows without reading a load of essays.
-          Contributions welcome. See the GitHub for more info.
-        </p>
-      </section>
-
-      <section id="cases" aria-labelledby="cases-title">
-        <h2 id="cases-title" class="case-heading">Cases</h2>
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th scope="col">Case</th>
-                <th scope="col">Protocol</th>
-                <th scope="col">Component</th>
-                <th scope="col">Risk type</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="empty-state" colspan="4">Coming soon</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </main>
+    <main id="main-content" class="page-shell"></main>
 
     <footer class="site-footer">
       <div class="page-shell footer-inner">
         <span>© 2026 vaults.rip</span>
-        <span>GitHub</span>
+        <a
+          href="https://github.com/jordaniza/vaults.rip"
+          target="_blank"
+          rel="noopener noreferrer"
+          >GitHub</a
+        >
       </div>
     </footer>
+    <script type="module" src="./main.js"></script>
   </body>
 </html>

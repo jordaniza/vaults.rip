@@ -1,0 +1,13 @@
+# vaults.rip
+
+> A collection of different ways a DeFi vault can be misconfigured.
+
+## Content
+
+- [Canonical website content](https://vaults.rip/content/index.md): The raw Markdown source rendered by the homepage.
+- [Design and content rules](https://vaults.rip/design/DESIGN_SPEC.md): Product, writing, layout, and visual guidance.
+
+## Source
+
+- [GitHub repository](https://github.com/jordaniza/vaults.rip)
+
