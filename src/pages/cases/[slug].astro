@@ -1,0 +1,40 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { getCollection, render } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+export async function getStaticPaths() {
+  const cases = await getCollection("cases");
+
+  return cases.map((entry) => ({
+    params: { slug: entry.id },
+    props: { entry },
+  }));
+}
+
+interface Props {
+  entry: CollectionEntry<"cases">;
+}
+
+const { entry } = Astro.props;
+const { Content } = await render(entry);
+const summary = entry.body
+  ?.match(/## Summary\s+([\s\S]*?)(?=\n## |$)/)?.[1]
+  .trim()
+  .replace(/\s+/g, " ");
+const description =
+  summary && !summary.startsWith("Lorem ipsum")
+    ? summary
+    : "A catalogue of experiments documenting how DeFi vault operators can misconfigure vaults, for due diligence, underwriting, and LLM-friendly workflows.";
+---
+
+<BaseLayout
+  title={`${entry.data.title} — vaults.rip`}
+  description={description}
+  canonicalPath={`/cases/${entry.id}/`}
+>
+  <article class="case-content prose" aria-labelledby="case-title">
+    <h1 id="case-title">{entry.data.title}</h1>
+    <Content />
+  </article>
+</BaseLayout>

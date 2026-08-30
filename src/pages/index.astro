@@ -1,0 +1,57 @@
+---
+import { getCollection, getEntry, render } from "astro:content";
+import BaseLayout from "../layouts/BaseLayout.astro";
+
+const homepage = await getEntry("pages", "index");
+
+if (!homepage) {
+  throw new Error("Missing content/index.md");
+}
+
+const { Content } = await render(homepage);
+const cases = (await getCollection("cases")).sort((left, right) =>
+  left.data.title.localeCompare(right.data.title),
+);
+---
+
+<BaseLayout>
+  <section class="home-copy prose" aria-labelledby="about">
+    <Content />
+  </section>
+
+  <section id="cases" aria-labelledby="cases-title">
+    <h2 id="cases-title" class="case-heading">Cases</h2>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Case</th>
+            <th scope="col">Protocol</th>
+            <th scope="col">Component</th>
+            <th scope="col">Risk type</th>
+          </tr>
+        </thead>
+        <tbody>
+          {
+            cases.map((entry) => (
+              <tr>
+                <td><a href={`/cases/${entry.id}/`}>{entry.data.title}</a></td>
+                <td>{entry.data.protocol ?? ""}</td>
+                <td>{entry.data.component}</td>
+                <td>{entry.data.riskType}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <script is:inline>
+    const legacyCase = new URLSearchParams(window.location.search).get("case");
+
+    if (legacyCase && /^[a-z0-9-]+$/.test(legacyCase)) {
+      window.location.replace(`/cases/${legacyCase}/`);
+    }
+  </script>
+</BaseLayout>

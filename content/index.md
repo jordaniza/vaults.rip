@@ -13,9 +13,3 @@ This site is a catalogue of those experiments.
 ## Using
 
 It's intended to be open-source, free, and LLM friendly so people can use in their own workflows without reading a load of essays. Contributions welcome. See the GitHub for more info.
-
-# Cases
-
-| Case        | Protocol | Component | Risk type |
-| ----------- | -------- | --------- | --------- |
-| Coming soon |          |           |           |

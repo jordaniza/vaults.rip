@@ -1,0 +1,115 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  canonicalPath?: string;
+  imageAlt?: string;
+}
+
+const {
+  title = "vaults.rip — DeFi vault misconfiguration cases",
+  description = "A catalogue of experiments documenting how DeFi vault operators can misconfigure vaults, for due diligence, underwriting, and LLM-friendly workflows.",
+  canonicalPath = "/",
+  imageAlt = "vaults.rip — A collection of different ways a DeFi vault can be misconfigured.",
+} = Astro.props;
+
+const canonicalUrl = new URL(canonicalPath, Astro.site);
+const previewUrl = new URL("/design/vaults-rip-social-preview.png", Astro.site);
+const structuredData = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "vaults.rip",
+  url: new URL("/", Astro.site).toString(),
+  description,
+  sameAs: ["https://github.com/jordaniza/vaults.rip"],
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#080d13" />
+    <meta name="robots" content="index, follow" />
+    <meta name="description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="vaults.rip" />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={previewUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={imageAlt} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={previewUrl} />
+    <meta name="twitter:image:alt" content={imageAlt} />
+    <title>{title}</title>
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/png" href="/design/vaults-rip-logo.png" />
+    <link rel="apple-touch-icon" href="/design/vaults-rip-logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Source+Sans+3:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <script
+      type="application/ld+json"
+      is:inline
+      set:html={JSON.stringify(structuredData)}
+    />
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to content</a>
+
+    <header class="site-header">
+      <div class="page-shell header-inner">
+        <a class="wordmark" href="/" aria-label="vaults.rip home">
+          <img
+            class="brand-icon"
+            src="/design/vaults-rip-logo.png"
+            width="36"
+            height="36"
+            alt=""
+          />
+          <span>vaults.rip</span>
+        </a>
+        <nav class="site-nav" aria-label="Primary navigation">
+          <ul>
+            <li><a href="/#cases">Cases</a></li>
+            <li><a href="/#about">About</a></li>
+            <li><a href="/llms.txt">llms.txt</a></li>
+            <li>
+              <a
+                href="https://github.com/jordaniza/vaults.rip"
+                target="_blank"
+                rel="noopener noreferrer">GitHub</a
+              >
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main-content" class="page-shell">
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <div class="page-shell footer-inner">
+        <span>© 2026 vaults.rip</span>
+        <a
+          href="https://github.com/jordaniza/vaults.rip"
+          target="_blank"
+          rel="noopener noreferrer">GitHub</a
+        >
+      </div>
+    </footer>
+  </body>
+</html>
