@@ -25,7 +25,10 @@ const structuredData = {
   name: "vaults.rip",
   url: new URL("/", Astro.site).toString(),
   description,
-  sameAs: ["https://github.com/jordaniza/vaults.rip"],
+  sameAs: [
+    "https://x.com/vaultsdotrip",
+    "https://github.com/jordaniza/vaults.rip",
+  ],
 };
 ---
 
@@ -87,8 +90,14 @@ const structuredData = {
         <nav class="site-nav" aria-label="Primary navigation">
           <ul>
             <li><a href="/#cases">Cases</a></li>
-            <li><a href="/#about">About</a></li>
             <li><a href="/llms.txt">llms.txt</a></li>
+            <li>
+              <a
+                href="https://x.com/vaultsdotrip"
+                target="_blank"
+                rel="noopener noreferrer">X</a
+              >
+            </li>
             <li>
               <a
                 href="https://github.com/jordaniza/vaults.rip"
@@ -108,11 +117,18 @@ const structuredData = {
     <footer class="site-footer">
       <div class="page-shell footer-inner">
         <span>© 2026 vaults.rip</span>
-        <a
-          href="https://github.com/jordaniza/vaults.rip"
-          target="_blank"
-          rel="noopener noreferrer">GitHub</a
-        >
+        <nav class="footer-links" aria-label="Footer navigation">
+          <a
+            href="https://x.com/vaultsdotrip"
+            target="_blank"
+            rel="noopener noreferrer">X</a
+          >
+          <a
+            href="https://github.com/jordaniza/vaults.rip"
+            target="_blank"
+            rel="noopener noreferrer">GitHub</a
+          >
+        </nav>
       </div>
     </footer>
 

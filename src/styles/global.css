@@ -691,6 +691,12 @@ tbody tr:last-child td {
   color: var(--accent);
 }
 
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
 @media (max-width: 720px) {
   .page-shell {
     width: calc(100% - 48px);
