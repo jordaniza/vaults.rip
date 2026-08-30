@@ -19,6 +19,6 @@ export async function GET() {
   const content = [skill.body.trim(), "## Cases", ...caseLinks].join("\n\n");
 
   return new Response(`${content}\n`, {
-    headers: { "Content-Type": "text/markdown; charset=utf-8" },
+    headers: { "Content-Type": "text/plain; charset=utf-8" },
   });
 }

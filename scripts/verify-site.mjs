@@ -378,7 +378,7 @@ if (!generatedHomepage.includes('rel="describedby" href="/llms.txt"')) {
 
 if (
   !generatedHomepage.includes(
-    'rel="alternate" type="text/markdown" href="/content/index.md"',
+    'rel="alternate" type="text/plain" href="/content/index.md"',
   )
 ) {
   fail("Homepage does not advertise its raw Markdown alternate.");
@@ -393,6 +393,22 @@ const llmsResponseHeader = vercelConfiguration.headers
 
 if (!llmsResponseHeader?.value?.includes('</llms.txt>; rel="describedby"')) {
   fail("Vercel responses do not advertise /llms.txt with rel=describedby.");
+}
+
+for (const source of [
+  "/llms.txt",
+  "/skills.md",
+  "/content/index.md",
+  "/content/cases/(.*).md",
+]) {
+  const rule = vercelConfiguration.headers?.find((entry) => entry.source === source);
+  const contentType = rule?.headers?.find(
+    (header) => header.key?.toLowerCase() === "content-type",
+  );
+
+  if (contentType?.value !== "text/plain; charset=utf-8") {
+    fail(`Vercel does not serve ${source} as UTF-8 plain text.`);
+  }
 }
 
 for (const casePath of casePaths) {
@@ -423,7 +439,7 @@ for (const casePath of casePaths) {
 
   if (
     !generatedCase.includes(
-      `rel="alternate" type="text/markdown" href="/content/cases/${casePath}.md"`,
+      `rel="alternate" type="text/plain" href="/content/cases/${casePath}.md"`,
     )
   ) {
     fail(`Rendered case does not advertise its raw Markdown alternate: ${casePath}`);
