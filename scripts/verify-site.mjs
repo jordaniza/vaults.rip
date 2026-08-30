@@ -162,17 +162,13 @@ if (/^# Cases\s*$/m.test(homepageMarkdown)) {
 }
 
 const readme = await readFile(path.join(repositoryRoot, "README.md"), "utf8");
-const readmeAbout = readme.match(/## About\n([\s\S]*?)(?=\n## )/)?.[0];
-const homepageAbout = homepageMarkdown.match(
-  /^# About\n[\s\S]*?(?=\n## Using\n)/,
+const readmeWhy = readme.match(/## Why\n([\s\S]*?)(?=\n## )/)?.[0];
+const homepageWhy = homepageMarkdown.match(
+  /^## Why\n[\s\S]*?(?=\n## Using\n)/m,
 )?.[0];
-const expectedReadmeAbout = homepageAbout
-  ?.trim()
-  .replace(/^## /gm, "### ")
-  .replace(/^# About$/m, "## About");
 
-if (readmeAbout?.trim() !== expectedReadmeAbout) {
-  fail("README.md About and Why copy has drifted from content/index.md.");
+if (readmeWhy?.trim() !== homepageWhy?.trim()) {
+  fail("README.md Why copy has drifted from content/index.md.");
 }
 
 const caseFiles = (await walk(casesRoot)).filter((filePath) =>
