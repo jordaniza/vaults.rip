@@ -16,17 +16,23 @@ This site is a catalogue of those experiments.
 
 It's intended to be open-source, free, and LLM friendly so people can use in their own workflows without reading a load of essays. Contributions welcome. See the GitHub for more info.
 
+## Contributing
+
+Contributions encouraged.
+
+Ask your LLM to read the repository's [agent guidance](./AGENTS.md), or read [CONTRIBUTING.md](./CONTRIBUTING.md) yourself.
+
 ## Page hierarchy
 
-| URL | Purpose | Source |
-| --- | --- | --- |
-| `/` | About copy and the generated case index | `content/index.md`, `content/cases/*.md`, `src/pages/index.astro` |
-| `/cases/<slug>/` | Human-readable case page | `content/cases/<slug>.md`, `src/pages/cases/[slug].astro` |
-| `/content/index.md` | Raw homepage copy and generated case directory for LLMs | `src/pages/content/index.md.ts` |
-| `/content/cases/<slug>.md` | Complete raw case Markdown with metadata | `content/cases/<slug>.md`, `src/pages/content/cases/[slug].md.ts` |
-| `/llms.txt` | Small machine-readable entry point | `public/llms.txt` |
-| `/design/<asset>` | Logo and social preview assets used by the site | `public/design/` |
-| `/content/cases/<slug>/<asset>` | Stable, unprocessed case media | `public/content/cases/<slug>/` |
+| URL                             | Purpose                                                 | Source                                                            |
+| ------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------- |
+| `/`                             | About copy and the generated case index                 | `content/index.md`, `content/cases/*.md`, `src/pages/index.astro` |
+| `/cases/<slug>/`                | Human-readable case page                                | `content/cases/<slug>.md`, `src/pages/cases/[slug].astro`         |
+| `/content/index.md`             | Raw homepage copy and generated case directory for LLMs | `src/pages/content/index.md.ts`                                   |
+| `/content/cases/<slug>.md`      | Complete raw case Markdown with metadata                | `content/cases/<slug>.md`, `src/pages/content/cases/[slug].md.ts` |
+| `/llms.txt`                     | Small machine-readable entry point                      | `public/llms.txt`                                                 |
+| `/design/<asset>`               | Logo and social preview assets used by the site         | `public/design/`                                                  |
+| `/content/cases/<slug>/<asset>` | Stable, unprocessed case media                          | `public/content/cases/<slug>/`                                    |
 
 The case index is generated from case frontmatter. It is intentionally not duplicated in `content/index.md`, `README.md`, or `llms.txt`.
 

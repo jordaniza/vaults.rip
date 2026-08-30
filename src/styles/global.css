@@ -226,6 +226,16 @@ h2 + h3 {
   font-size: 0.88em;
 }
 
+.case-content ul {
+  margin: 24px 0 0;
+  padding-left: 28px;
+  color: var(--text-secondary);
+}
+
+.case-content li + li {
+  margin-top: 8px;
+}
+
 .table-wrap {
   width: 100%;
   overflow-x: auto;

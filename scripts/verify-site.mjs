@@ -154,7 +154,7 @@ if (/^# Cases\s*$/m.test(homepageMarkdown)) {
 }
 
 const readme = await readFile(path.join(repositoryRoot, "README.md"), "utf8");
-const readmeAbout = readme.match(/## About\n([\s\S]*?)(?=\n## Page hierarchy)/)?.[0];
+const readmeAbout = readme.match(/## About\n([\s\S]*?)(?=\n## )/)?.[0];
 const expectedReadmeAbout = homepageMarkdown
   .trim()
   .replace(/^## /gm, "### ")
