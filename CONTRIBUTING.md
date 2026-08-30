@@ -26,7 +26,7 @@ The authored content locations are:
 
 - `content/index.md` for homepage copy
 - `content/cases/<protocol>/<number>.md` for case copy and frontmatter
-- `content/skills.md` for the high-level vault review workflow and finding scaffold
+- `content/skills.md` for the work-in-progress skills introduction; Astro appends the generated case list
 - `public/content/cases/<protocol>/<number>/` for case-specific images and downloads
 - `src/pages/llms.txt.ts` generates the machine-readable case directory; do not maintain its links by hand
 

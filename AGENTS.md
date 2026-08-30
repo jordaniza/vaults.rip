@@ -5,7 +5,7 @@
 - Read `design/DESIGN_SPEC.md` before changing any user-facing page. Content takes precedence over interface, and invented marketing copy is prohibited.
 - Canonical homepage prose lives only in `content/index.md`.
 - Canonical case research lives only in `content/cases/<protocol>/<number>.md`.
-- Canonical high-level vault review guidance lives only in `content/skills.md`. Keep it procedural and link to cases for issue-specific detail rather than duplicating case copy.
+- The work-in-progress skills introduction lives only in `content/skills.md`. `src/pages/skills.md.ts` appends the current case list automatically; do not maintain that list in the Markdown.
 - Do not duplicate the case index in `content/index.md` or `README.md`. Astro generates it from case frontmatter.
 - Keep `caseId` in the generated raw case directory and raw case document, but do not display internal IDs in the human homepage table.
 - `README.md` opens with the social preview and intentionally repeats only the homepage Why copy for repository visitors. Check that shared section for drift whenever `content/index.md` changes; `pnpm verify` enforces this.
@@ -29,7 +29,7 @@ The build flow is:
 4. `src/pages/content/index.md.ts` generates the raw homepage document plus the current case directory.
 5. `src/pages/content/cases/[...slug].md.ts` generates one complete raw Markdown document per case.
 6. `src/pages/llms.txt.ts` combines homepage context with direct links to every canonical case Markdown file.
-7. `src/pages/skills.md.ts` serves the high-level review workflow from `content/skills.md`.
+7. `src/pages/skills.md.ts` serves the work-in-progress introduction from `content/skills.md` and appends the current case list.
 8. Astro copies `public/` unchanged into `dist/` and emits the rendered HTML and generated Markdown routes.
 
 Do not bypass the collections by reading Markdown with ad hoc filesystem code in page components. Do not put substantive copy directly into Astro templates.
@@ -54,7 +54,7 @@ Routes ending in `.md` or `.txt` do not use trailing slashes. Human-readable cas
 ## Content placement
 
 - Put homepage copy in `content/index.md`.
-- Put the general vault review workflow in `content/skills.md`; keep specific risk mechanisms in cases.
+- Put only the skills introduction in `content/skills.md`; keep specific risk mechanisms in cases and generate the list through Astro.
 - Put each case at `content/cases/<protocol>/<number>.md`. Use a lowercase protocol slug and an unpadded positive integer starting at `1`; assign the next number within that protocol for each new case.
 - Every case must include non-empty `title`, `caseId`, `protocol`, and `component` frontmatter. `caseId` is the protocol slug followed by its number, such as `morpho1`, and must not change when the title changes.
 - Keep case sections in this order: Summary, Context, Where it goes wrong, Example, and How to address. Context and Where it goes wrong are optional when they do not add useful information; Summary, Example, and How to address are required. If the content model changes, update the templates, documentation, and verifier together.

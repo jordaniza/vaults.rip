@@ -5,6 +5,7 @@
   "packageManager": "pnpm@10.15.1",
   "scripts": {
     "dev": "ASTRO_TELEMETRY_DISABLED=1 astro dev",
+    "stop": "ASTRO_TELEMETRY_DISABLED=1 astro dev stop",
     "build": "ASTRO_TELEMETRY_DISABLED=1 astro build",
     "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview",
     "check": "ASTRO_TELEMETRY_DISABLED=1 astro check",

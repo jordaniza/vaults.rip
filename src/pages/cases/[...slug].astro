@@ -20,6 +20,10 @@ interface Props {
 const { entry } = Astro.props;
 const { Content, headings } = await render(entry);
 const contents = headings.filter((heading) => heading.depth === 2);
+const markdownPath = `/content/cases/${entry.id}.md`;
+const markdownHref = import.meta.env.DEV
+  ? markdownPath
+  : new URL(markdownPath, Astro.site).toString();
 const summary = entry.body
   ?.match(/## Summary\s+([\s\S]*?)(?=\n## |$)/)?.[1]
   .trim()
@@ -38,6 +42,9 @@ const description =
 >
   <article class="case-content prose" aria-labelledby="case-title">
     <h1 id="case-title">{entry.data.title}</h1>
+    <a class="case-markdown-link" href={markdownHref}>
+      View Markdown
+    </a>
     <dl class="case-metadata" aria-label="Case metadata">
       <div>
         <dt>Protocol</dt>

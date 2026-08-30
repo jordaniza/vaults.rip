@@ -1,15 +1,24 @@
-import { getEntry } from "astro:content";
+import { getCollection, getEntry } from "astro:content";
 
 export const prerender = true;
 
 export async function GET() {
   const skill = await getEntry("pages", "skills");
+  const cases = (await getCollection("cases")).sort((left, right) =>
+    left.id.localeCompare(right.id, undefined, { numeric: true }),
+  );
 
   if (!skill?.body) {
     return new Response("Missing content/skills.md\n", { status: 500 });
   }
 
-  return new Response(`${skill.body.trim()}\n`, {
+  const caseLinks = cases.map(
+    (entry) =>
+      `- [${entry.data.title}](https://www.vaults.rip/content/cases/${entry.id}.md): ${entry.data.protocol} ${entry.data.component} case.`,
+  );
+  const content = [skill.body.trim(), "## Cases", ...caseLinks].join("\n\n");
+
+  return new Response(`${content}\n`, {
     headers: { "Content-Type": "text/markdown; charset=utf-8" },
   });
 }

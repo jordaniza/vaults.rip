@@ -408,6 +408,10 @@ for (const casePath of casePaths) {
     fail(`Generated llms.txt is missing direct case link: ${casePath}`);
   }
 
+  if (!generatedSkill.includes(`https://www.vaults.rip/content/cases/${casePath}.md`)) {
+    fail(`Generated skills.md is missing direct case link: ${casePath}`);
+  }
+
   const generatedCase = await readFile(
     path.join(outputRoot, "cases", casePath, "index.html"),
     "utf8",
