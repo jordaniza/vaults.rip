@@ -444,6 +444,14 @@ for (const casePath of casePaths) {
   ) {
     fail(`Rendered case does not advertise its raw Markdown alternate: ${casePath}`);
   }
+
+  if (
+    !generatedCase.includes('class="case-return"') ||
+    !generatedCase.includes('class="case-return-label">Home</span>') ||
+    !generatedCase.includes('class="case-return-arrow" aria-hidden="true">←</span>')
+  ) {
+    fail(`Rendered case does not include return-to-home navigation: ${casePath}`);
+  }
 }
 
 const outputFiles = await walk(outputRoot);

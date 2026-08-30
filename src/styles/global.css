@@ -372,6 +372,38 @@ h2 + h3 {
   margin-top: 64px;
 }
 
+.case-return {
+  margin-top: 72px;
+}
+
+.case-return a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1.4;
+  text-decoration: none;
+}
+
+.case-return-label {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.case-return-arrow {
+  color: var(--accent);
+  font-size: 16px;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.case-return a:hover {
+  color: var(--accent);
+  text-decoration: none;
+}
+
 .case-toc {
   margin-top: 40px;
   padding: 24px 0 28px;
