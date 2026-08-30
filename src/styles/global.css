@@ -68,6 +68,18 @@ a:focus-visible {
   transform: translateY(0);
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  border: 0;
+  white-space: nowrap;
+}
+
 .page-shell {
   width: min(calc(100% - 96px), var(--page-width));
   margin-inline: auto;
@@ -219,20 +231,25 @@ h2 + h3 {
 
 .case-filters {
   display: grid;
-  grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(150px, 1fr));
+  grid-template-columns: 2fr 1fr 1fr;
   margin-bottom: 24px;
-  gap: 16px;
+  gap: 0;
 }
 
-.case-filters label {
-  display: grid;
-  gap: 8px;
+.case-filter {
+  min-width: 0;
 }
 
-.case-filters label > span {
-  color: var(--text-muted);
-  font-size: 14px;
-  line-height: 1.3;
+.case-filter:first-child {
+  padding-right: 20px;
+}
+
+.case-filter:nth-child(2) {
+  padding-inline: 20px;
+}
+
+.case-filter:last-child {
+  padding-left: 20px;
 }
 
 .case-filters input,
@@ -254,8 +271,27 @@ h2 + h3 {
   opacity: 1;
 }
 
+.select-control {
+  position: relative;
+  display: block;
+}
+
+.select-control::after {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid var(--text-muted);
+  border-bottom: 1.5px solid var(--text-muted);
+  content: "";
+  pointer-events: none;
+  transform: translateY(-70%) rotate(45deg);
+}
+
 .case-filters select {
-  padding-right: 40px;
+  padding-right: 44px;
+  appearance: none;
 }
 
 .case-filters input:focus-visible,
@@ -513,7 +549,17 @@ table {
   width: 100%;
   min-width: 680px;
   border-collapse: collapse;
+  table-layout: fixed;
   text-align: left;
+}
+
+.case-column {
+  width: 50%;
+}
+
+.protocol-column,
+.component-column {
+  width: 25%;
 }
 
 th,
@@ -548,23 +594,24 @@ th {
   color: inherit;
   cursor: pointer;
   font: inherit;
-  gap: 8px;
+  gap: 7px;
 }
 
-.case-sort::after {
+.case-sort-icon {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
   color: var(--text-muted);
-  content: "↕";
-  font-size: 13px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.25;
 }
 
-th[aria-sort="ascending"] .case-sort::after {
+th[aria-sort="ascending"] .case-sort-icon,
+th[aria-sort="descending"] .case-sort-icon {
   color: var(--accent);
-  content: "↑";
-}
-
-th[aria-sort="descending"] .case-sort::after {
-  color: var(--accent);
-  content: "↓";
 }
 
 .case-sort:hover {
@@ -657,6 +704,13 @@ tbody tr:last-child td {
 
   .case-filters {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .case-filter:first-child,
+  .case-filter:nth-child(2),
+  .case-filter:last-child {
+    padding: 0;
   }
 
   .case-metadata > div + div {

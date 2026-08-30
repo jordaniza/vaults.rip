@@ -19,28 +19,17 @@ export async function GET() {
     return new Response("Missing content/index.md\n", { status: 500 });
   }
 
-  const caseDocuments = cases.map((entry) => {
-    const metadata = [
-      `Case ID: ${entry.data.caseId}`,
-      `Protocol: ${entry.data.protocol}`,
-      `Component: ${entry.data.component}`,
-      `Human-readable: https://www.vaults.rip/cases/${entry.id}/`,
-      `Canonical Markdown: https://www.vaults.rip/content/cases/${entry.id}.md`,
-    ];
-
-    return [
-      `### ${entry.data.title}`,
-      metadata.join("\n"),
-      demoteHeadings(entry.body?.trim() ?? "", 2),
-    ].join("\n\n");
-  });
+  const caseLinks = cases.map(
+    (entry) =>
+      `- [${entry.data.title}](https://www.vaults.rip/content/cases/${entry.id}.md): ${entry.data.protocol} ${entry.data.component} case. Case ID: ${entry.data.caseId}.`,
+  );
 
   const content = [
     "# vaults.rip",
     "> A collection of different ways a DeFi vault can be misconfigured.",
     demoteHeadings(homepage.body.trim(), 1),
     "## Cases",
-    ...caseDocuments,
+    ...caseLinks,
     "## Source",
     "- [GitHub repository](https://github.com/jordaniza/vaults.rip)",
   ].join("\n\n");

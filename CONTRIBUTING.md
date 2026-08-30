@@ -18,7 +18,7 @@ That one file controls:
 - The human-readable page at `/cases/morpho/1/`
 - The LLM-readable document at `/content/cases/morpho/1.md`
 - The case entry linked from the generated `/content/index.md` directory
-- The complete case included in the generated `/llms.txt` aggregate
+- The direct case link included in the generated `/llms.txt` directory
 
 Do not edit those generated outputs separately. Add or revise the copy in the case Markdown, then run `pnpm verify` to confirm that the human and machine-readable versions remain in parity.
 
@@ -26,8 +26,9 @@ The authored content locations are:
 
 - `content/index.md` for homepage copy
 - `content/cases/<protocol>/<number>.md` for case copy and frontmatter
+- `content/skills.md` for the high-level vault review workflow and finding scaffold
 - `public/content/cases/<protocol>/<number>/` for case-specific images and downloads
-- `src/pages/llms.txt.ts` generates the machine-readable aggregate; do not duplicate case copy there
+- `src/pages/llms.txt.ts` generates the machine-readable case directory; do not maintain its links by hand
 
 Case numbers start at `1` and increase independently for each protocol. The path `content/cases/morpho/1.md` uses the stable frontmatter ID `caseId: morpho1`. Keep both the path and `caseId` unchanged if the title changes; a second Morpho case would use `morpho/2.md` and `caseId: morpho2`.
 

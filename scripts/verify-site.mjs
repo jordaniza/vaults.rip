@@ -147,6 +147,7 @@ async function resolveOutputReference(sourceFile, reference) {
 }
 
 await requireFile(path.join(contentRoot, "index.md"), "homepage Markdown");
+await requireFile(path.join(contentRoot, "skills.md"), "vault review skill");
 await requireFile(
   path.join(repositoryRoot, "src", "pages", "llms.txt.ts"),
   "generated LLM endpoint",
@@ -162,13 +163,16 @@ if (/^# Cases\s*$/m.test(homepageMarkdown)) {
 
 const readme = await readFile(path.join(repositoryRoot, "README.md"), "utf8");
 const readmeAbout = readme.match(/## About\n([\s\S]*?)(?=\n## )/)?.[0];
-const expectedReadmeAbout = homepageMarkdown
-  .trim()
+const homepageAbout = homepageMarkdown.match(
+  /^# About\n[\s\S]*?(?=\n## Using\n)/,
+)?.[0];
+const expectedReadmeAbout = homepageAbout
+  ?.trim()
   .replace(/^## /gm, "### ")
   .replace(/^# About$/m, "## About");
 
 if (readmeAbout?.trim() !== expectedReadmeAbout) {
-  fail("README.md About copy has drifted from content/index.md.");
+  fail("README.md About and Why copy has drifted from content/index.md.");
 }
 
 const caseFiles = (await walk(casesRoot)).filter((filePath) =>
@@ -339,6 +343,7 @@ if (!designMorphoLogo.equals(publicMorphoLogo)) {
 for (const outputFile of [
   "index.html",
   "llms.txt",
+  "skills.md",
   path.join("content", "index.md"),
 ]) {
   await requireFile(path.join(outputRoot, outputFile), `build output ${outputFile}`);
@@ -350,6 +355,15 @@ const generatedContentIndex = await readFile(
   "utf8",
 );
 const generatedLlms = await readFile(path.join(outputRoot, "llms.txt"), "utf8");
+const generatedSkill = await readFile(path.join(outputRoot, "skills.md"), "utf8");
+
+if (!generatedLlms.includes("[skills.md file](/skills.md)")) {
+  fail("Generated llms.txt is missing the skills.md discovery link.");
+}
+
+if (!generatedSkill.includes("https://www.vaults.rip/llms.txt")) {
+  fail("Generated skills.md must direct agents to the current case directory.");
+}
 
 for (const paragraph of homepageMarkdown
   .replace(/^#{1,6}\s+/gm, "")
@@ -394,22 +408,8 @@ for (const casePath of casePaths) {
     fail(`Raw content index is missing generated case link: ${casePath}`);
   }
 
-  const [protocolSlug, caseNumber] = casePath.split("/");
-  const sourceCase = await readFile(
-    path.join(casesRoot, protocolSlug, `${caseNumber}.md`),
-    "utf8",
-  );
-  const sourceCaseBody = sourceCase.replace(/^---\n[\s\S]*?\n---\n/, "");
-
-  for (const paragraph of sourceCaseBody
-    .replace(/^#{1,6}\s+/gm, "")
-    .split(/\n{2,}/)
-    .map((value) => value.trim())
-    .filter(Boolean)) {
-    if (!generatedLlms.includes(paragraph)) {
-      fail(`Generated llms.txt is missing case content: ${casePath}`);
-      break;
-    }
+  if (!generatedLlms.includes(`https://www.vaults.rip/content/cases/${casePath}.md`)) {
+    fail(`Generated llms.txt is missing direct case link: ${casePath}`);
   }
 
   const generatedCase = await readFile(

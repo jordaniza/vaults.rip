@@ -13,3 +13,5 @@ This site is a catalogue of those experiments.
 ## Using
 
 It's intended to be open-source, free, and LLM friendly so people can use in their own workflows without reading a load of essays. Contributions welcome. See the GitHub for more info.
+
+There's also a [skills.md file](/skills.md), which I'm currently working on. Contributions are welcome to it.
