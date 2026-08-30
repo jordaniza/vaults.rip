@@ -43,7 +43,8 @@ const description =
   <article class="case-content prose" aria-labelledby="case-title">
     <h1 id="case-title">{entry.data.title}</h1>
     <a class="case-markdown-link" href={markdownHref}>
-      View Markdown
+      <span class="case-markdown-label">View Markdown</span>
+      <span class="case-markdown-arrow" aria-hidden="true">↗</span>
     </a>
     <dl class="case-metadata" aria-label="Case metadata">
       <div>
