@@ -147,8 +147,12 @@ async function resolveOutputReference(sourceFile, reference) {
 }
 
 await requireFile(path.join(contentRoot, "index.md"), "homepage Markdown");
-await requireFile(path.join(publicRoot, "llms.txt"), "LLM map");
+await requireFile(
+  path.join(repositoryRoot, "src", "pages", "llms.txt.ts"),
+  "generated LLM endpoint",
+);
 await requireFile(path.join(repositoryRoot, "design", "DESIGN_SPEC.md"), "design specification");
+await requireFile(path.join(repositoryRoot, "vercel.json"), "Vercel configuration");
 
 const homepageMarkdown = await readFile(path.join(contentRoot, "index.md"), "utf8");
 
@@ -345,6 +349,41 @@ const generatedContentIndex = await readFile(
   path.join(outputRoot, "content", "index.md"),
   "utf8",
 );
+const generatedLlms = await readFile(path.join(outputRoot, "llms.txt"), "utf8");
+
+for (const paragraph of homepageMarkdown
+  .replace(/^#{1,6}\s+/gm, "")
+  .split(/\n{2,}/)
+  .map((value) => value.trim())
+  .filter(Boolean)) {
+  if (!generatedLlms.includes(paragraph)) {
+    fail("Generated llms.txt is missing homepage content.");
+    break;
+  }
+}
+
+if (!generatedHomepage.includes('rel="describedby" href="/llms.txt"')) {
+  fail("Homepage does not advertise /llms.txt with rel=describedby.");
+}
+
+if (
+  !generatedHomepage.includes(
+    'rel="alternate" type="text/markdown" href="/content/index.md"',
+  )
+) {
+  fail("Homepage does not advertise its raw Markdown alternate.");
+}
+
+const vercelConfiguration = JSON.parse(
+  await readFile(path.join(repositoryRoot, "vercel.json"), "utf8"),
+);
+const llmsResponseHeader = vercelConfiguration.headers
+  ?.flatMap((rule) => rule.headers ?? [])
+  .find((header) => header.key?.toLowerCase() === "link");
+
+if (!llmsResponseHeader?.value?.includes('</llms.txt>; rel="describedby"')) {
+  fail("Vercel responses do not advertise /llms.txt with rel=describedby.");
+}
 
 for (const casePath of casePaths) {
   if (!generatedHomepage.includes(`/cases/${casePath}/`)) {
@@ -353,6 +392,41 @@ for (const casePath of casePaths) {
 
   if (!generatedContentIndex.includes(`/content/cases/${casePath}.md`)) {
     fail(`Raw content index is missing generated case link: ${casePath}`);
+  }
+
+  const [protocolSlug, caseNumber] = casePath.split("/");
+  const sourceCase = await readFile(
+    path.join(casesRoot, protocolSlug, `${caseNumber}.md`),
+    "utf8",
+  );
+  const sourceCaseBody = sourceCase.replace(/^---\n[\s\S]*?\n---\n/, "");
+
+  for (const paragraph of sourceCaseBody
+    .replace(/^#{1,6}\s+/gm, "")
+    .split(/\n{2,}/)
+    .map((value) => value.trim())
+    .filter(Boolean)) {
+    if (!generatedLlms.includes(paragraph)) {
+      fail(`Generated llms.txt is missing case content: ${casePath}`);
+      break;
+    }
+  }
+
+  const generatedCase = await readFile(
+    path.join(outputRoot, "cases", casePath, "index.html"),
+    "utf8",
+  );
+
+  if (!generatedCase.includes('rel="describedby" href="/llms.txt"')) {
+    fail(`Rendered case does not advertise /llms.txt: ${casePath}`);
+  }
+
+  if (
+    !generatedCase.includes(
+      `rel="alternate" type="text/markdown" href="/content/cases/${casePath}.md"`,
+    )
+  ) {
+    fail(`Rendered case does not advertise its raw Markdown alternate: ${casePath}`);
   }
 }
 

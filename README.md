@@ -30,11 +30,13 @@ Ask your LLM to read the repository's [agent guidance](./AGENTS.md), or read [CO
 | `/cases/<protocol>/<number>/`                 | Human-readable case page                                | `content/cases/<protocol>/<number>.md`, `src/pages/cases/[...slug].astro`       |
 | `/content/index.md`                           | Raw homepage copy and generated case directory for LLMs | `src/pages/content/index.md.ts`                                                 |
 | `/content/cases/<protocol>/<number>.md`       | Complete raw case Markdown with metadata                | Case Markdown and `src/pages/content/cases/[...slug].md.ts`                     |
-| `/llms.txt`                                   | Small machine-readable entry point                      | `public/llms.txt`                                                               |
+| `/llms.txt`                                   | Homepage copy and every complete case in one document   | Both collections and `src/pages/llms.txt.ts`                                    |
 | `/design/<asset>`                             | Logo and social preview assets used by the site         | `public/design/`                                                                |
 | `/content/cases/<protocol>/<number>/<asset>`  | Stable, unprocessed case media                          | `public/content/cases/<protocol>/<number>/`                                     |
 
-The case index is generated from case frontmatter. It is intentionally not duplicated in `content/index.md`, `README.md`, or `llms.txt`. The human index omits internal IDs; the raw `/content/index.md` directory includes each stable `caseId` for machine consumers.
+The case index is generated from case frontmatter. It is intentionally not duplicated in `content/index.md` or `README.md`. The human index omits internal IDs; the raw `/content/index.md` directory includes each stable `caseId` for machine consumers. `/llms.txt` is also generated and combines the homepage copy with every complete case, so agents can ingest the corpus without following multiple links.
+
+Every HTML page advertises `/llms.txt` with `rel="describedby"` and its matching raw Markdown route with `rel="alternate"`. Vercel also adds the `/llms.txt` relationship as an HTTP `Link` header so non-HTML clients can discover it without inspecting the visible page.
 
 ## Content and build flow
 
@@ -43,11 +45,12 @@ The case index is generated from case frontmatter. It is intentionally not dupli
 - `pages` reads top-level Markdown from `content/`. The `index` entry supplies homepage prose.
 - `cases` reads Markdown from `content/cases/` and validates `title`, `caseId`, `protocol`, and `component` frontmatter.
 
-Astro renders those collections in three places:
+Astro renders those collections in four places:
 
 1. `src/pages/index.astro` renders the homepage copy and generates its case table.
 2. `src/pages/cases/[...slug].astro` uses `getStaticPaths()` to generate one HTML page for every case.
 3. The endpoints under `src/pages/content/` generate the raw Markdown directory and one raw Markdown document per case.
+4. `src/pages/llms.txt.ts` combines the homepage Markdown and every complete case into one machine-readable document.
 
 Files in `public/` are copied unchanged to the root of the production build. Global presentation and SEO live in `src/layouts/BaseLayout.astro` and `src/styles/global.css`; substantive copy does not.
 
@@ -59,7 +62,7 @@ Files in `public/` are copied unchanged to the root of the production build. Glo
 - Design source files: `design/`
 - Design assets required by the website: matching files in `public/design/`
 - Protocol logo sources: `design/protocols/`, with matching runtime copies in `public/protocols/`
-- Machine-readable entry point: `public/llms.txt`
+- Generated machine-readable aggregate: `src/pages/llms.txt.ts`
 
 Case numbers are unpadded, increase independently within each protocol, and start at `1`. The protocol slug and number form a stable ID: `content/cases/morpho/1.md` uses `caseId: morpho1` and routes to `/cases/morpho/1/`. Keep the path and `caseId` unchanged when editing a case title.
 
@@ -79,6 +82,8 @@ The available checks are:
 - `pnpm verify:site` audits an existing build for required routes, content placement, frontmatter, section order, copied design assets, and dead internal links.
 - `pnpm verify` runs all three checks in the correct order. Run this before pushing or merging changes.
 
+The `Check links` GitHub Action runs `pnpm verify` on pull requests and pushes to `main`, then checks outbound URLs in the source content and generated site. It can also be started manually from GitHub Actions.
+
 ## Repository structure
 
 - `content/` contains canonical authored copy.
@@ -87,5 +92,7 @@ The available checks are:
 - `src/layouts/` and `src/styles/` contain shared presentation.
 - `public/` contains files copied directly to their public URLs.
 - `scripts/verify-site.mjs` enforces the documented content and route contract.
+- `.github/workflows/check-links.yml` verifies internal and outbound links in CI.
+- `vercel.json` advertises `/llms.txt` in response headers.
 - `design/` contains the design specification and canonical visual assets.
 - `AGENTS.md` contains repository guidance for coding agents.

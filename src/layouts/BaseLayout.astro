@@ -5,6 +5,7 @@ interface Props {
   title?: string;
   description?: string;
   canonicalPath?: string;
+  markdownPath?: string;
   imageAlt?: string;
 }
 
@@ -12,6 +13,7 @@ const {
   title = "vaults.rip — DeFi vault misconfiguration cases",
   description = "A catalogue of experiments documenting how DeFi vault operators can misconfigure vaults, for due diligence, underwriting, and LLM-friendly workflows.",
   canonicalPath = "/",
+  markdownPath = "/content/index.md",
   imageAlt = "vaults.rip — A collection of different ways a DeFi vault can be misconfigured.",
 } = Astro.props;
 
@@ -51,6 +53,8 @@ const structuredData = {
     <meta name="twitter:image:alt" content={imageAlt} />
     <title>{title}</title>
     <link rel="canonical" href={canonicalUrl} />
+    <link rel="describedby" href="/llms.txt" />
+    <link rel="alternate" type="text/markdown" href={markdownPath} />
     <link rel="icon" type="image/png" href="/design/vaults-rip-logo.png" />
     <link rel="apple-touch-icon" href="/design/vaults-rip-logo.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
