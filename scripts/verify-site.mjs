@@ -147,6 +147,7 @@ async function resolveOutputReference(sourceFile, reference) {
 }
 
 await requireFile(path.join(contentRoot, "index.md"), "homepage Markdown");
+await requireFile(path.join(contentRoot, "llms.md"), "LLM routing guidance");
 await requireFile(path.join(contentRoot, "skills.md"), "vault review skill");
 await requireFile(
   path.join(repositoryRoot, "src", "pages", "llms.txt.ts"),
@@ -156,6 +157,7 @@ await requireFile(path.join(repositoryRoot, "design", "DESIGN_SPEC.md"), "design
 await requireFile(path.join(repositoryRoot, "vercel.json"), "Vercel configuration");
 
 const homepageMarkdown = await readFile(path.join(contentRoot, "index.md"), "utf8");
+const llmsGuideMarkdown = await readFile(path.join(contentRoot, "llms.md"), "utf8");
 
 if (/^# Cases\s*$/m.test(homepageMarkdown)) {
   fail("content/index.md must not contain a manually maintained case index.");
@@ -353,7 +355,7 @@ const generatedContentIndex = await readFile(
 const generatedLlms = await readFile(path.join(outputRoot, "llms.txt"), "utf8");
 const generatedSkill = await readFile(path.join(outputRoot, "skills.md"), "utf8");
 
-if (!generatedLlms.includes("[skills.md file](/skills.md)")) {
+if (!generatedLlms.includes("https://www.vaults.rip/skills.md")) {
   fail("Generated llms.txt is missing the skills.md discovery link.");
 }
 
@@ -361,15 +363,18 @@ if (!generatedSkill.includes("https://www.vaults.rip/llms.txt")) {
   fail("Generated skills.md must direct agents to the current case directory.");
 }
 
-for (const paragraph of homepageMarkdown
-  .replace(/^#{1,6}\s+/gm, "")
-  .split(/\n{2,}/)
-  .map((value) => value.trim())
-  .filter(Boolean)) {
-  if (!generatedLlms.includes(paragraph)) {
-    fail("Generated llms.txt is missing homepage content.");
-    break;
+if (!generatedLlms.startsWith(llmsGuideMarkdown.trim())) {
+  fail("Generated llms.txt has drifted from content/llms.md.");
+}
+
+for (const heading of ["## How to use this site", "## Page hierarchy", "## Cases"]) {
+  if (!generatedLlms.includes(heading)) {
+    fail(`Generated llms.txt is missing required routing section: ${heading}`);
   }
+}
+
+if (generatedLlms.includes("## Why") || generatedLlms.includes("## Using")) {
+  fail("Generated llms.txt must not duplicate the homepage overview sections.");
 }
 
 if (!generatedHomepage.includes('rel="describedby" href="/llms.txt"')) {

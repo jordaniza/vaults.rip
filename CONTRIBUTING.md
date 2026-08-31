@@ -25,6 +25,7 @@ Do not edit those generated outputs separately. Add or revise the copy in the ca
 The authored content locations are:
 
 - `content/index.md` for homepage copy
+- `content/llms.md` for LLM routing and page-hierarchy guidance; Astro appends the generated case list
 - `content/cases/<protocol>/<number>.md` for case copy and frontmatter
 - `content/skills.md` for the work-in-progress skills introduction; Astro appends the generated case list
 - `public/content/cases/<protocol>/<number>/` for case-specific images and downloads
