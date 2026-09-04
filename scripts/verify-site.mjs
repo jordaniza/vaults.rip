@@ -4,6 +4,9 @@ import path from "node:path";
 const repositoryRoot = process.cwd();
 const contentRoot = path.join(repositoryRoot, "content");
 const casesRoot = path.join(contentRoot, "cases");
+const protocolsRoot = path.join(contentRoot, "protocols");
+const examplesRoot = path.join(repositoryRoot, "examples");
+const skillsRoot = path.join(repositoryRoot, "skills");
 const publicRoot = path.join(repositoryRoot, "public");
 const outputRoot = path.join(repositoryRoot, "dist");
 const failures = [];
@@ -148,7 +151,15 @@ async function resolveOutputReference(sourceFile, reference) {
 
 await requireFile(path.join(contentRoot, "index.md"), "homepage Markdown");
 await requireFile(path.join(contentRoot, "llms.md"), "LLM routing guidance");
-await requireFile(path.join(contentRoot, "skills.md"), "vault review skill");
+await requireFile(path.join(repositoryRoot, "SKILL.md"), "vault scanner skill");
+for (const skillName of ["morpho-v2", "etherscan", "smart-contracts"]) {
+  await requireFile(
+    path.join(skillsRoot, skillName, "SKILL.md"),
+    `${skillName} skill`,
+  );
+}
+await requireFile(path.join(repositoryRoot, "foundry.toml"), "Foundry configuration");
+await requireFile(path.join(examplesRoot, "README.md"), "Foundry examples guide");
 await requireFile(
   path.join(repositoryRoot, "src", "pages", "llms.txt.ts"),
   "generated LLM endpoint",
@@ -158,6 +169,14 @@ await requireFile(path.join(repositoryRoot, "vercel.json"), "Vercel configuratio
 
 const homepageMarkdown = await readFile(path.join(contentRoot, "index.md"), "utf8");
 const llmsGuideMarkdown = await readFile(path.join(contentRoot, "llms.md"), "utf8");
+const foundryConfiguration = await readFile(
+  path.join(repositoryRoot, "foundry.toml"),
+  "utf8",
+);
+
+if (!/^test\s*=\s*["']examples["']\s*$/m.test(foundryConfiguration)) {
+  fail('foundry.toml must configure test = "examples".');
+}
 
 if (/^# Cases\s*$/m.test(homepageMarkdown)) {
   fail("content/index.md must not contain a manually maintained case index.");
@@ -291,6 +310,101 @@ for (const [protocolSlug, numbers] of protocolCaseNumbers) {
   }
 }
 
+const checkFiles = (await walk(protocolsRoot)).filter((filePath) =>
+  filePath.endsWith(".md"),
+);
+const checkIds = new Set();
+const checkPaths = [];
+
+for (const checkFile of checkFiles) {
+  const relativeCheckFile = path.relative(protocolsRoot, checkFile);
+  const checkSegments = relativeCheckFile.split(path.sep);
+
+  if (checkSegments.length !== 3) {
+    fail(
+      `Check Markdown must use content/protocols/<protocol>/<component>/<slug>.md: ${relativeCheckFile}`,
+    );
+    continue;
+  }
+
+  const [protocolSlug, componentSlug, checkFileName] = checkSegments;
+  const checkSlug = path.basename(checkFileName, ".md");
+  const checkPath = `${protocolSlug}/${componentSlug}/${checkSlug}`;
+  const markdown = await readFile(checkFile, "utf8");
+  const frontmatter = parseFrontmatter(markdown, relativeCheckFile);
+  checkPaths.push(checkPath);
+
+  for (const field of [
+    "checkId",
+    "protocol",
+    "component",
+    "title",
+    "slug",
+    "examples",
+  ]) {
+    if (!frontmatter.has(field)) {
+      fail(`${relativeCheckFile} is missing the ${field} frontmatter field.`);
+    }
+  }
+
+  for (const field of ["checkId", "protocol", "component", "title", "slug"]) {
+    if (!frontmatter.get(field)) {
+      fail(`${relativeCheckFile} has an empty ${field} frontmatter field.`);
+    }
+  }
+
+  if (frontmatter.get("slug") !== checkSlug) {
+    fail(`${relativeCheckFile} slug must match its filename.`);
+  }
+
+  if (toSlug(frontmatter.get("protocol") ?? "") !== protocolSlug) {
+    fail(`${relativeCheckFile} protocol does not match its directory.`);
+  }
+
+  if (toSlug(frontmatter.get("component") ?? "") !== componentSlug) {
+    fail(`${relativeCheckFile} component does not match its directory.`);
+  }
+
+  const checkId = frontmatter.get("checkId") ?? "";
+  const expectedCheckIdPrefix = `${protocolSlug}-${componentSlug}-`;
+
+  if (!new RegExp(`^${escapeRegularExpression(expectedCheckIdPrefix)}[1-9]\\d*$`).test(checkId)) {
+    fail(`${relativeCheckFile} checkId must start with ${expectedCheckIdPrefix}.`);
+  } else if (checkIds.has(checkId)) {
+    fail(`${relativeCheckFile} duplicates checkId: ${checkId}.`);
+  } else {
+    checkIds.add(checkId);
+  }
+
+  const levelTwoHeadings = [...markdown.matchAll(/^##\s+(.+)$/gm)].map(
+    (match) => match[1],
+  );
+
+  if (
+    levelTwoHeadings.length !== 1 ||
+    levelTwoHeadings[0] !== "What to check"
+  ) {
+    fail(`${relativeCheckFile} must contain only one section: “What to check”.`);
+  }
+
+  const rawCheckPath = path.join(
+    outputRoot,
+    "content",
+    "protocols",
+    protocolSlug,
+    componentSlug,
+    `${checkSlug}.md`,
+  );
+
+  if (await requireFile(rawCheckPath, `raw check Markdown for ${checkPath}`)) {
+    const rawCheck = await readFile(rawCheckPath, "utf8");
+
+    if (!rawCheck.includes(`Check ID: ${checkId}`)) {
+      fail(`Raw check Markdown is missing Check ID: ${checkId}.`);
+    }
+  }
+}
+
 const publicCaseAssetsRoot = path.join(publicRoot, "content", "cases");
 
 if (await exists(publicCaseAssetsRoot)) {
@@ -341,7 +455,11 @@ if (!designMorphoLogo.equals(publicMorphoLogo)) {
 for (const outputFile of [
   "index.html",
   "llms.txt",
+  "SKILL.md",
   "skills.md",
+  path.join("skills", "morpho-v2", "SKILL.md"),
+  path.join("skills", "etherscan", "SKILL.md"),
+  path.join("skills", "smart-contracts", "SKILL.md"),
   path.join("content", "index.md"),
 ]) {
   await requireFile(path.join(outputRoot, outputFile), `build output ${outputFile}`);
@@ -353,21 +471,59 @@ const generatedContentIndex = await readFile(
   "utf8",
 );
 const generatedLlms = await readFile(path.join(outputRoot, "llms.txt"), "utf8");
-const generatedSkill = await readFile(path.join(outputRoot, "skills.md"), "utf8");
+const generatedSkill = await readFile(path.join(outputRoot, "SKILL.md"), "utf8");
+const generatedSkillAlias = await readFile(
+  path.join(outputRoot, "skills.md"),
+  "utf8",
+);
+const generatedMorphoSkill = await readFile(
+  path.join(outputRoot, "skills", "morpho-v2", "SKILL.md"),
+  "utf8",
+);
 
-if (!generatedLlms.includes("https://www.vaults.rip/skills.md")) {
-  fail("Generated llms.txt is missing the skills.md discovery link.");
+for (const [label, document] of [
+  ["SKILL.md", generatedSkill],
+  ["skills.md", generatedSkillAlias],
+  ["Morpho V2 skill", generatedMorphoSkill],
+]) {
+  if (!document.startsWith("---\nname:") || !document.includes("\ndescription:")) {
+    fail(`Generated ${label} is missing Agent Skill frontmatter.`);
+  }
 }
 
-if (!generatedSkill.includes("https://www.vaults.rip/llms.txt")) {
-  fail("Generated skills.md must direct agents to the current case directory.");
+if (!generatedLlms.includes("https://www.vaults.rip/SKILL.md")) {
+  fail("Generated llms.txt is missing the SKILL.md discovery link.");
+}
+
+for (const upstreamMorphoSource of ["https://docs.morpho.org/llms.txt"]) {
+  if (!generatedLlms.includes(upstreamMorphoSource)) {
+    fail(`Generated llms.txt is missing upstream Morpho source: ${upstreamMorphoSource}`);
+  }
+
+  if (!generatedMorphoSkill.includes(upstreamMorphoSource)) {
+    fail(`Generated Morpho V2 skill is missing upstream source: ${upstreamMorphoSource}`);
+  }
+}
+
+if (generatedSkillAlias !== generatedSkill) {
+  fail("Generated skills.md compatibility route has drifted from SKILL.md.");
+}
+
+for (const skillPath of [
+  "skills/morpho-v2/SKILL.md",
+  "skills/etherscan/SKILL.md",
+  "skills/smart-contracts/SKILL.md",
+]) {
+  if (!generatedSkill.includes(skillPath)) {
+    fail(`Generated SKILL.md is missing its skill route: ${skillPath}`);
+  }
 }
 
 if (!generatedLlms.startsWith(llmsGuideMarkdown.trim())) {
   fail("Generated llms.txt has drifted from content/llms.md.");
 }
 
-for (const heading of ["## How to use this site", "## Page hierarchy", "## Cases"]) {
+for (const heading of ["## Navigation", "## Cases"]) {
   if (!generatedLlms.includes(heading)) {
     fail(`Generated llms.txt is missing required routing section: ${heading}`);
   }
@@ -402,9 +558,12 @@ if (!llmsResponseHeader?.value?.includes('</llms.txt>; rel="describedby"')) {
 
 for (const source of [
   "/llms.txt",
+  "/SKILL.md",
   "/skills.md",
+  "/skills/(.*).md",
   "/content/index.md",
   "/content/cases/(.*).md",
+  "/content/protocols/(.*).md",
 ]) {
   const rule = vercelConfiguration.headers?.find((entry) => entry.source === source);
   const contentType = rule?.headers?.find(
@@ -427,10 +586,6 @@ for (const casePath of casePaths) {
 
   if (!generatedLlms.includes(`https://www.vaults.rip/content/cases/${casePath}.md`)) {
     fail(`Generated llms.txt is missing direct case link: ${casePath}`);
-  }
-
-  if (!generatedSkill.includes(`https://www.vaults.rip/content/cases/${casePath}.md`)) {
-    fail(`Generated skills.md is missing direct case link: ${casePath}`);
   }
 
   const generatedCase = await readFile(
@@ -456,6 +611,16 @@ for (const casePath of casePaths) {
     !generatedCase.includes('class="case-return-arrow" aria-hidden="true">←</span>')
   ) {
     fail(`Rendered case does not include return-to-home navigation: ${casePath}`);
+  }
+}
+
+for (const checkPath of checkPaths) {
+  if (
+    !generatedMorphoSkill.includes(
+      `https://www.vaults.rip/content/protocols/${checkPath}.md`,
+    )
+  ) {
+    fail(`Generated Morpho V2 skill is missing direct check link: ${checkPath}`);
   }
 }
 

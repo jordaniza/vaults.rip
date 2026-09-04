@@ -16,6 +16,8 @@ Contributions encouraged.
 
 Ask your LLM to read the repository's [agent guidance](./AGENTS.md), or read [CONTRIBUTING.md](./CONTRIBUTING.md) yourself.
 
+The machine-readable scanner starts at [SKILL.md](https://www.vaults.rip/SKILL.md). Protocol and supporting skills live under `skills/`; executable Foundry examples are optional illustrations.
+
 ## Development and verification
 
 ```sh

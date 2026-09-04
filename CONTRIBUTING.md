@@ -6,6 +6,10 @@ Contributions are welcome. Before making a change, read `design/DESIGN_SPEC.md` 
 
 The human-readable website and the LLM-readable content are generated from the same Markdown files. Markdown is the source of truth and Astro (the web framework we use) renders it into the website, case pages, and raw Markdown routes for LLMs.
 
+The scanner starts at `/SKILL.md`, which routes agents to protocol and supporting skills under `/skills/`. Protocol checks contain a short `What to check` section and may link to an optional Foundry example under `examples/`.
+
+Protocol skills should link to maintained upstream skills and documentation for protocol mechanics, interfaces and APIs. Add only the risk-review procedure and checks that vaults.rip contributes on top.
+
 To change an existing case, edit its file in `content/cases/`. For example, changes to **Custom oracle control** belong in:
 
 ```text
@@ -25,9 +29,12 @@ Do not edit those generated outputs separately. Add or revise the copy in the ca
 The authored content locations are:
 
 - `content/index.md` for homepage copy
-- `content/llms.md` for LLM routing and page-hierarchy guidance; Astro appends the generated case list
+- `content/llms.md` for LLM navigation guidance; Astro appends the generated case list
+- `content/protocols/<protocol>/<component>/<slug>.md` for scanner checks
 - `content/cases/<protocol>/<number>.md` for case copy and frontmatter
-- `content/skills.md` for the work-in-progress skills introduction; Astro appends the generated case list
+- `SKILL.md` for scanner scope and routing
+- `skills/<skill-name>/SKILL.md` for protocol and reusable scanner procedures
+- `examples/<protocol>/<component>/*.t.sol` for optional executable examples
 - `public/content/cases/<protocol>/<number>/` for case-specific images and downloads
 - `src/pages/llms.txt.ts` generates the machine-readable case directory; do not maintain its links by hand
 
@@ -49,3 +56,5 @@ pnpm verify
 ```
 
 This validates the Astro build, content schema, generated routes, content placement, and internal links.
+
+When executable examples exist, run them from the repository root with `forge test`.

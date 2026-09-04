@@ -20,7 +20,25 @@
       ]
     },
     {
+      "source": "/SKILL.md",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        }
+      ]
+    },
+    {
       "source": "/skills.md",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/skills/(.*).md",
       "headers": [
         {
           "key": "Content-Type",
@@ -39,6 +57,15 @@
     },
     {
       "source": "/content/cases/(.*).md",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/content/protocols/(.*).md",
       "headers": [
         {
           "key": "Content-Type",

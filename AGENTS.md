@@ -5,8 +5,11 @@
 - Read `design/DESIGN_SPEC.md` before changing any user-facing page. Content takes precedence over interface, and invented marketing copy is prohibited.
 - Canonical homepage prose lives only in `content/index.md`.
 - Canonical case research lives only in `content/cases/<protocol>/<number>.md`.
+- Canonical scanner checks live only in `content/protocols/<protocol>/<component>/<slug>.md`. Each check contains only a `What to check` section; executable examples are linked by slug from frontmatter.
 - Canonical LLM routing guidance lives only in `content/llms.md`. `src/pages/llms.txt.ts` appends the current case list automatically; do not maintain that list in the Markdown.
-- The work-in-progress skills introduction lives only in `content/skills.md`. `src/pages/skills.md.ts` appends the current case list automatically; do not maintain that list in the Markdown.
+- The scanner entrypoint lives in root `SKILL.md`. Protocol and reusable supporting skills live in `skills/<skill-name>/SKILL.md`; keep each skill's detailed procedure in its own file and link it from the entrypoint.
+- Protocol skills must delegate changing mechanics, interfaces, addresses, APIs and SDK behavior to authoritative upstream skills or documentation. Keep only the vaults.rip risk-review requirements and routing needed on top; do not copy upstream protocol manuals into this repository.
+- `src/pages/skills/[...slug].md.ts` appends the current Morpho check list to the published Morpho V2 skill. Do not maintain that list in the skill by hand.
 - Do not duplicate the case index in `content/index.md` or `README.md`. Astro generates it from case frontmatter.
 - Keep `caseId` in the generated raw case directory and raw case document, but do not display internal IDs in the human homepage table.
 - `README.md` opens with the social preview and intentionally repeats only the homepage Why copy for repository visitors. Check that shared section for drift whenever `content/index.md` changes; `pnpm verify` enforces this.
@@ -19,8 +22,11 @@ The project is a static Astro site configured by `astro.config.mjs` and built wi
 
 `src/content.config.ts` is the only content collection definition:
 
-- `pages` loads `content/*.md`. The entries `index`, `llms`, and `skills` provide the homepage, LLM routing guidance, and work-in-progress skills introduction.
+- `pages` loads `content/*.md`. The entries `index` and `llms` provide the homepage and LLM navigation.
 - `cases` loads `content/cases/**/*.md`, retains the raw body for machine-readable endpoints, and validates `title`, `caseId`, `protocol`, and `component`.
+- `checks` loads `content/protocols/*/*/*.md`, retains the raw body, and validates `checkId`, `protocol`, `component`, `title`, `slug`, and `examples`.
+- `scanner` loads root `SKILL.md` and validates its Agent Skill frontmatter.
+- `skills` loads `skills/*/SKILL.md` and validates each protocol or supporting Agent Skill.
 
 The build flow is:
 
@@ -30,8 +36,10 @@ The build flow is:
 4. `src/pages/content/index.md.ts` generates the raw homepage document plus the current case directory.
 5. `src/pages/content/cases/[...slug].md.ts` generates one complete raw Markdown document per case.
 6. `src/pages/llms.txt.ts` combines `content/llms.md` with direct links to every canonical case Markdown file.
-7. `src/pages/skills.md.ts` serves the work-in-progress introduction from `content/skills.md` and appends the current case list.
-8. Astro copies `public/` unchanged into `dist/` and emits the rendered HTML and generated Markdown routes.
+7. `src/pages/SKILL.md.ts` and `src/pages/skills.md.ts` publish the root scanner skill at its canonical route and compatibility alias.
+8. `src/pages/skills/[...slug].md.ts` publishes the protocol and supporting skills; it appends the generated checks to the Morpho V2 skill.
+9. `src/pages/content/protocols/[...slug].md.ts` generates one machine-readable Markdown document per scanner check and links any Foundry examples declared in frontmatter.
+10. Astro copies `public/` unchanged into `dist/` and emits the rendered HTML and generated Markdown routes.
 
 Do not bypass the collections by reading Markdown with ad hoc filesystem code in page components. Do not put substantive copy directly into Astro templates.
 
@@ -45,8 +53,11 @@ Case-page navigation is generated from the rendered Markdown `##` headings in `s
 | `/cases/<protocol>/<number>/`                 | Case Markdown through `src/pages/cases/[...slug].astro`                       |
 | `/content/index.md`                           | Both collections through `src/pages/content/index.md.ts`                       |
 | `/content/cases/<protocol>/<number>.md`       | The matching case through `src/pages/content/cases/[...slug].md.ts`            |
+| `/content/protocols/<protocol>/<component>/<slug>.md` | The matching check through `src/pages/content/protocols/[...slug].md.ts` |
 | `/llms.txt`                                   | `content/llms.md` and case frontmatter through `src/pages/llms.txt.ts`         |
-| `/skills.md`                                  | `content/skills.md` through `src/pages/skills.md.ts`                           |
+| `/SKILL.md`                                   | Root `SKILL.md` through `src/pages/SKILL.md.ts`                                |
+| `/skills.md`                                  | Compatibility copy of root `SKILL.md` through `src/pages/skills.md.ts`         |
+| `/skills/<skill-name>/SKILL.md`               | The matching skill through `src/pages/skills/[...slug].md.ts`                  |
 | `/design/<asset>`                             | `public/design/<asset>`                                                        |
 | `/content/cases/<protocol>/<number>/<asset>`  | `public/content/cases/<protocol>/<number>/<asset>`                             |
 
@@ -55,8 +66,12 @@ Routes ending in `.md` or `.txt` do not use trailing slashes. Human-readable cas
 ## Content placement
 
 - Put homepage copy in `content/index.md`.
-- Put only LLM routing and page-hierarchy guidance in `content/llms.md`; Astro appends the generated case list.
-- Put only the skills introduction in `content/skills.md`; keep specific risk mechanisms in cases and generate the list through Astro.
+- Put only LLM navigation guidance in `content/llms.md`; Astro appends the generated case list.
+- Put scanner scope and routing in root `SKILL.md`.
+- Put protocol-specific and reusable procedures in `skills/<skill-name>/SKILL.md`. The current modules are `morpho-v2`, `etherscan`, and `smart-contracts`.
+- Put checks at `content/protocols/<protocol>/<component>/<slug>.md`. Keep each check lean: frontmatter followed by one `What to check` section.
+- Use a stable `checkId` in the form `<protocol>-<component>-<number>`. Keep the semantic `slug` aligned with the filename and do not change the ID when the title or slug changes.
+- Tests are not required. When a test would help illustrate a check, put the optional Foundry example under `examples/<protocol>/<component>/` and list its path in the check's `examples` frontmatter. The root `foundry.toml` configures `examples/` as the project's test directory.
 - Put each case at `content/cases/<protocol>/<number>.md`. Use a lowercase protocol slug and an unpadded positive integer starting at `1`; assign the next number within that protocol for each new case.
 - Every case must include non-empty `title`, `caseId`, `protocol`, and `component` frontmatter. `caseId` is the protocol slug followed by its number, such as `morpho1`, and must not change when the title changes.
 - Keep case sections in this order: Summary, Context, Where it goes wrong, Example, and How to address. Context and Where it goes wrong are optional when they do not add useful information; Summary, Example, and How to address are required. If the content model changes, update the templates, documentation, and verifier together.

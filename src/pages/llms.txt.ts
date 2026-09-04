@@ -21,8 +21,6 @@ export async function GET() {
     guide.body.trim(),
     "## Cases",
     caseLinks.join("\n"),
-    "## Source",
-    "- [GitHub repository](https://github.com/jordaniza/vaults.rip)",
   ].join("\n\n");
 
   return new Response(`${content}\n`, {

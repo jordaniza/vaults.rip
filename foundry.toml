@@ -1,0 +1,8 @@
+[profile.default]
+test = "examples"
+out = "out"
+libs = ["lib"]
+
+[rpc_endpoints]
+ethereum = "${ETHEREUM_RPC_URL}"
+base = "${BASE_RPC_URL}"
