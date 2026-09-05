@@ -81,8 +81,8 @@ const renderedProtocols = new Map(
             <section>
               <h3>{protocol}</h3>
               {components.map((component) => (
-                <div>
-                  <h4>{component}</h4>
+                <details class="checks-toc-component">
+                  <summary>{component}</summary>
                   <ul>
                     {checks
                       .filter((entry) => entry.data.component === component)
@@ -90,7 +90,7 @@ const renderedProtocols = new Map(
                         <li><a href={`#${entry.data.checkId}`}>{entry.data.title}</a></li>
                       ))}
                   </ul>
-                </div>
+                </details>
               ))}
             </section>
           );
@@ -116,7 +116,10 @@ const renderedProtocols = new Map(
               </div>
             )}
             {components.map((component) => (
-              <section class="check-component" aria-labelledby={`${protocol}-${component}`.toLowerCase().replaceAll(" ", "-")}>
+              <section
+                class="check-component"
+                aria-labelledby={`${protocol}-${component}`.toLowerCase().replaceAll(" ", "-")}
+              >
                 <h3 id={`${protocol}-${component}`.toLowerCase().replaceAll(" ", "-")}>{component}</h3>
                 {checks
                   .filter((entry) => entry.data.component === component)

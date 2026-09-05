@@ -9,6 +9,12 @@ cases:
   - morpho2
 ---
 
-Map the vault owner and curator, market deployer, oracle administrators, collateral issuer or administrators, and dominant suppliers and borrowers. Establish relationships using onchain control, verified public statements or other attributable evidence.
+Check the addresses of:
 
-Report an issue when overlapping control is combined with material concentration, discretionary pricing or another mechanism that lets the same economic party route depositor assets and extract value against collateral it controls. A curator also deploying a market is not sufficient on its own. Mark unproven relationships as unresolved and keep them distinct from established facts.
+- the vault owner
+- the vault curator
+- the market deployer
+- the oracle owner or administrator
+- the collateral owner or administrator
+
+Record any roles held by the same address. If an address cannot be found, record it as missing.

@@ -9,6 +9,6 @@ cases:
   - morpho2
 ---
 
-For each collateral asset, resolve circulating supply, material holders, administrator minting or freezing powers, and the holders supplying collateral to the reviewed markets. Account for contracts and addresses that may be controlled by the same entity rather than treating each address as independent.
+For each collateral asset, use the appropriate Etherscan explorer to check the concentration of token holders.
 
-Report an issue when one holder or related group can supply enough collateral to dominate borrowing, manipulate available liquidity or leave lenders dependent on that party's ability to realize the asserted collateral value. Record uncertain ownership relationships as unresolved; do not infer common control without evidence.
+Report an issue if a majority of the tokens sit with one party. If holder data is not readily available, record it as missing.
