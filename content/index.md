@@ -1,17 +1,29 @@
 # About
 
-vaults.rip is a collection of different ways a DeFi vault can be misconfigured.
+vaults.rip is an LLM-first collection of checks for examining whether a DeFi vault is misconfigured.
 
 ## Why
 
-I realised after years of depositing into vaults, like Morpho and Euler, that I had a fairly surface-level understanding of the various controls curators have to direct vault capital.
+I realised after years of depositing into vaults like Morpho and Euler, that I had a fairly surface-level understanding of the various controls curators have to direct vault capital.
 
-The minimal design of Morpho vaults is very much optimised for security and governance minimisation, which shifts a lot of the burden to the user/curator. I wanted to document as many ways as I could that vault operators could misconfigure a vault, and either accidentally or intentionally lose my money.
+The minimal design of Morpho vaults is very much optimised for security and governance minimisation, which shifts a lot of the burden to the user/curator. It's my view that, without an easy way to **verify** if a vault is secure, we are forced to **trust** the curator/protocol/whatever.
 
-This site is a catalogue of those experiments.
+I therefore wanted to create a shortlist of checks that can be run by my LLM to verify if a vault is configured in a way that minimises my chances of losing money.
+
+This site is a collection of those checks.
 
 ## Using
 
-It's intended to be open-source, free, and LLM-friendly so people can use it in their own workflows without reading a load of essays. Contributions are welcome. See the GitHub for more info.
+The [llms.txt](/llms.txt) provides the general procedure and links to the protocol skills that contain the checks.
 
-There's also a [skills.md file](/skills.md), which I'm currently working on. Contributions are welcome to it.
+**Checks** are operational instructions that an LLM or reviewer can apply to a vault or market.
+
+**Cases** are supporting research examples that explain why a check exists and show what the condition can look like in practice. Cases provide context but are not required to run a review.
+
+## [Checks](/checks/)
+
+Actionable review instructions organized by protocol and component.
+
+## [Cases](/cases/)
+
+Worked research examples for readers who want more detail on a risk mechanism.

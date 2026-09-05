@@ -1,5 +1,17 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/SKILL.md",
+      "destination": "/llms.txt",
+      "permanent": true
+    },
+    {
+      "source": "/skills.md",
+      "destination": "/llms.txt",
+      "permanent": true
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
@@ -12,24 +24,6 @@
     },
     {
       "source": "/llms.txt",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "text/plain; charset=utf-8"
-        }
-      ]
-    },
-    {
-      "source": "/SKILL.md",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "text/plain; charset=utf-8"
-        }
-      ]
-    },
-    {
-      "source": "/skills.md",
       "headers": [
         {
           "key": "Content-Type",
@@ -57,15 +51,6 @@
     },
     {
       "source": "/content/cases/(.*).md",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "text/plain; charset=utf-8"
-        }
-      ]
-    },
-    {
-      "source": "/content/protocols/(.*).md",
       "headers": [
         {
           "key": "Content-Type",

@@ -10,11 +10,11 @@ interface Props {
 }
 
 const {
-  title = "vaults.rip — DeFi vault misconfiguration cases",
-  description = "A catalogue of experiments documenting how DeFi vault operators can misconfigure vaults, for due diligence, underwriting, and LLM-friendly workflows.",
+  title = "vaults.rip — LLM-first DeFi vault checks",
+  description = "An LLM-first collection of checks for examining whether a DeFi vault is misconfigured, with supporting cases and reproducible examples.",
   canonicalPath = "/",
   markdownPath = "/content/index.md",
-  imageAlt = "vaults.rip — A collection of different ways a DeFi vault can be misconfigured.",
+  imageAlt = "vaults.rip — An LLM-first collection of checks for examining DeFi vault configuration.",
 } = Astro.props;
 
 const canonicalUrl = new URL(canonicalPath, Astro.site);
@@ -46,8 +46,8 @@ const structuredData = {
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:image" content={previewUrl} />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
+    <meta property="og:image:width" content="1731" />
+    <meta property="og:image:height" content="909" />
     <meta property="og:image:alt" content={imageAlt} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
@@ -89,7 +89,8 @@ const structuredData = {
         </a>
         <nav class="site-nav" aria-label="Primary navigation">
           <ul>
-            <li><a href="/#cases">Cases</a></li>
+            <li><a href="/checks/">Checks</a></li>
+            <li><a href="/cases/">Cases</a></li>
             <li><a href="/llms.txt">llms.txt</a></li>
             <li>
               <a

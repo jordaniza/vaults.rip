@@ -21,6 +21,8 @@ contract SettableOracle is IOracle {
     }
 }
 
+//@agent this can be removed, the more interesting point is the
+// messed up market
 contract SettableOraclePoc {
     function test_DeployerCanChangeTheReportedPrice() public {
         SettableOracle oracle = new SettableOracle();

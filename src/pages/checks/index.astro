@@ -1,0 +1,169 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { getCollection, getEntry, render } from "astro:content";
+import ProtocolIdentity from "../../components/ProtocolIdentity.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const componentOrder = ["Oracles", "Collateral", "Markets", "Vaults"];
+const allChecks = await getCollection("checks");
+const allCases = await getCollection("cases");
+const protocolEntries = await getCollection("protocols");
+const introduction = await getEntry("pages", "checks");
+
+if (!introduction) throw new Error("Missing content/checks.md");
+
+const { Content: Introduction } = await render(introduction);
+const casesById = new Map(allCases.map((entry) => [entry.data.caseId, entry]));
+const protocols = [...new Set(allChecks.map((entry) => entry.data.protocol))].sort();
+
+function checksForProtocol(protocol: string) {
+  return allChecks
+    .filter((entry) => entry.data.protocol === protocol)
+    .sort((left, right) =>
+      left.data.checkId.localeCompare(right.data.checkId, undefined, {
+        numeric: true,
+      }),
+    );
+}
+
+function componentsFor(checks: CollectionEntry<"checks">[]) {
+  return [...new Set(checks.map((entry) => entry.data.component))].sort(
+    (left, right) => {
+      const leftIndex = componentOrder.indexOf(left);
+      const rightIndex = componentOrder.indexOf(right);
+
+      return (
+        (leftIndex === -1 ? componentOrder.length : leftIndex) -
+          (rightIndex === -1 ? componentOrder.length : rightIndex) ||
+        left.localeCompare(right)
+      );
+    },
+  );
+}
+
+const renderedChecks = new Map(
+  await Promise.all(
+    allChecks.map(async (entry) => {
+      const { Content } = await render(entry);
+      return [entry.id, Content] as const;
+    }),
+  ),
+);
+const renderedProtocols = new Map(
+  await Promise.all(
+    protocolEntries.map(async (entry) => {
+      const { Content } = await render(entry);
+      return [entry.data.title, Content] as const;
+    }),
+  ),
+);
+---
+
+<BaseLayout
+  title="Checks — vaults.rip"
+  description="Actionable review instructions for supported DeFi vault protocols, organized by protocol and component."
+  canonicalPath="/checks/"
+  markdownPath="/SKILL.md"
+>
+  <article class="checks-page" aria-labelledby="checks">
+    <div class="prose">
+      <Introduction />
+    </div>
+
+    <nav class="checks-toc" aria-labelledby="checks-toc-title">
+      <h2 id="checks-toc-title">Contents</h2>
+      {
+        protocols.map((protocol) => {
+          const checks = checksForProtocol(protocol);
+          const components = componentsFor(checks);
+
+          return (
+            <section>
+              <h3>{protocol}</h3>
+              {components.map((component) => (
+                <div>
+                  <h4>{component}</h4>
+                  <ul>
+                    {checks
+                      .filter((entry) => entry.data.component === component)
+                      .map((entry) => (
+                        <li><a href={`#${entry.data.checkId}`}>{entry.data.title}</a></li>
+                      ))}
+                  </ul>
+                </div>
+              ))}
+            </section>
+          );
+        })
+      }
+    </nav>
+
+    {
+      protocols.map((protocol) => {
+        const checks = checksForProtocol(protocol);
+        const components = componentsFor(checks);
+        const ProtocolContent = renderedProtocols.get(protocol);
+
+        return (
+          <section class="check-protocol" aria-labelledby={`protocol-${protocol.toLowerCase().replaceAll(" ", "-")}`}>
+            <div class="check-protocol-heading">
+              <ProtocolIdentity protocol={protocol} size="detail" />
+              <h2 id={`protocol-${protocol.toLowerCase().replaceAll(" ", "-")}`}>{protocol}</h2>
+            </div>
+            {ProtocolContent && (
+              <div class="check-protocol-docs prose">
+                <ProtocolContent />
+              </div>
+            )}
+            {components.map((component) => (
+              <section class="check-component" aria-labelledby={`${protocol}-${component}`.toLowerCase().replaceAll(" ", "-")}>
+                <h3 id={`${protocol}-${component}`.toLowerCase().replaceAll(" ", "-")}>{component}</h3>
+                {checks
+                  .filter((entry) => entry.data.component === component)
+                  .map((entry) => {
+                    const Content = renderedChecks.get(entry.id);
+                    const relatedCases = entry.data.cases.flatMap((caseId) => {
+                      const relatedCase = casesById.get(caseId);
+                      return relatedCase ? [relatedCase] : [];
+                    });
+
+                    return (
+                      <article class="check-entry prose" id={entry.data.checkId}>
+                        <p class="check-id">{entry.data.checkId}</p>
+                        <h4>{entry.data.title}</h4>
+                        {Content && <Content />}
+                        {entry.data.examples.length > 0 && (
+                          <div class="check-related">
+                            <h5>Examples</h5>
+                            <ul>
+                              {entry.data.examples.map((example) => (
+                                <li>
+                                  <a href={`https://github.com/jordaniza/vaults.rip/blob/main/examples/${example}`}>
+                                    {example}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {relatedCases.length > 0 && (
+                          <div class="check-related">
+                            <h5>Related cases</h5>
+                            <ul>
+                              {relatedCases.map((relatedCase) => (
+                                <li><a href={`/cases/${relatedCase.id}/`}>{relatedCase.data.title}</a></li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </article>
+                    );
+                  })}
+              </section>
+            ))}
+          </section>
+        );
+      })
+    }
+  </article>
+</BaseLayout>

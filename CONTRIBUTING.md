@@ -1,60 +1,62 @@
 # Contributing
 
-Contributions are welcome. Before making a change, read `design/DESIGN_SPEC.md` and follow the content and build structure described in `README.md`.
+Contributions generally start in one of two places:
 
-## Editing the content
+1. Read the current [checks](https://www.vaults.rip/checks/) and add an instruction when an important review step is missing.
+2. Submit a case study that demonstrates why an existing or proposed check matters.
 
-The human-readable website and the LLM-readable content are generated from the same Markdown files. Markdown is the source of truth and Astro (the web framework we use) renders it into the website, case pages, and raw Markdown routes for LLMs.
+Rough case research is welcome. Write it as Markdown, then ask an LLM to read `AGENTS.md` and convert it into the repository structure.
 
-The scanner starts at `/SKILL.md`, which routes agents to protocol and supporting skills under `/skills/`. Protocol checks contain a short `What to check` section and may link to an optional Foundry example under `examples/`.
+## Add a check
 
-Protocol skills should link to maintained upstream skills and documentation for protocol mechanics, interfaces and APIs. Add only the risk-review procedure and checks that vaults.rip contributes on top.
+Create `content/checks/<protocol>/<component>/<slug>.md` using:
 
-To change an existing case, edit its file in `content/cases/`. For example, changes to **Custom oracle control** belong in:
+```md
+---
+checkId: <protocol>-<component>-<next-number>
+protocol: <Protocol name>
+component: <Component name>
+title: <Check title>
+slug: <slug>
+examples: []
+cases:
+  - <caseId>
+---
 
-```text
-content/cases/morpho/1.md
+<What to inspect, how to inspect it, when to report an issue, and what to do if it cannot be resolved.>
 ```
 
-That one file controls:
+The check links to relevant cases through `cases`. Add the reciprocal absolute check link under `## Related checks` at the end of each referenced case; verification prevents these lists from drifting.
 
-- The case title and metadata shown in the homepage case index
-- The human-readable page at `/cases/morpho/1/`
-- The LLM-readable document at `/content/cases/morpho/1.md`
-- The case entry linked from the generated `/content/index.md` directory
-- The direct case link included in the generated `/llms.txt` directory
+## Add a case
 
-Do not edit those generated outputs separately. Add or revise the copy in the case Markdown, then run `pnpm verify` to confirm that the human and machine-readable versions remain in parity.
+Create `content/cases/<protocol>/<next-number>.md` using:
 
-The authored content locations are:
+```md
+---
+title: <Case title>
+caseId: <protocol><number>
+protocol: <Protocol name>
+---
 
-- `content/index.md` for homepage copy
-- `content/llms.md` for LLM navigation guidance; Astro appends the generated case list
-- `content/protocols/<protocol>/<component>/<slug>.md` for scanner checks
-- `content/cases/<protocol>/<number>.md` for case copy and frontmatter
-- `SKILL.md` for scanner scope and routing
-- `skills/<skill-name>/SKILL.md` for protocol and reusable scanner procedures
-- `examples/<protocol>/<component>/*.t.sol` for optional executable examples
-- `public/content/cases/<protocol>/<number>/` for case-specific images and downloads
-- `src/pages/llms.txt.ts` generates the machine-readable case directory; do not maintain its links by hand
+<Case study in free-form Markdown.>
 
-Case numbers start at `1` and increase independently for each protocol. The path `content/cases/morpho/1.md` uses the stable frontmatter ID `caseId: morpho1`. Keep both the path and `caseId` unchanged if the title changes; a second Morpho case would use `morpho/2.md` and `caseId: morpho2`.
+## Related checks
 
-## Set up the project
+- [<Check title>](https://www.vaults.rip/checks/#<checkId>)
+```
+
+Cases do not require fixed headings. Put case images in `public/content/cases/<protocol>/<number>/` and link them from the Markdown.
+
+After adding the case, add its `caseId` to each check it supports. If the required check does not exist, add that check as well.
+
+Foundry examples are optional. If one makes a check easier to understand, put it under `examples/<protocol>/<component>/` and add its relative path to the check's `examples` list.
+
+## Verify
 
 ```sh
 pnpm install
-pnpm dev
-```
-
-## Before submitting
-
-Run the complete project check:
-
-```sh
 pnpm verify
 ```
 
-This validates the Astro build, content schema, generated routes, content placement, and internal links.
-
-When executable examples exist, run them from the repository root with `forge test`.
+Husky runs the full build verification and the browser-style development-route regression test before commits.

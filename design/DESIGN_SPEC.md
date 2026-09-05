@@ -120,9 +120,9 @@ Do not write sentences merely to sound authoritative.
 
 ## 5. Information architecture
 
-Global navigation initially contains only:
+Global navigation contains:
 
-vaults.rip             Cases   About   llms.txt   GitHub
+vaults.rip             Checks   Cases   llms.txt   X   GitHub
 
 Do not add navigation items without a real destination.
 
@@ -134,9 +134,10 @@ Vertically stack:
 
 1. vaults.rip / factual introduction
 2. About
-3. Cases
-4. repository/source links if useful
-5. minimal footer
+3. Checks link
+4. Cases link
+5. repository/source links if useful
+6. minimal footer
 
 About appears before Cases.
 
@@ -144,13 +145,17 @@ Do not create a conventional "hero".
 
 The first section can have generous space and large typography, but it should contain factual explanatory prose rather than a headline + tagline + CTA pattern.
 
+### Checks index
+
+Use one vertically flowing page grouped by protocol and then component. Generate a compact contents tree at the top and give each check a stable `checkId` anchor.
+
+Render every check from its canonical Markdown. Show related cases and optional executable examples from check frontmatter.
+
+Do not create separate human-readable pages for individual checks. Links to a check should point to `/checks/#<checkId>`.
+
 ### Case index
 
-Use a simple table.
-
-Columns:
-
-Case | Protocol | Component
+Group cases by protocol and link to their individual reading pages.
 
 Protocol should preferably be represented by its recognizable logo.
 
@@ -160,7 +165,7 @@ Do not show:
 - status
 - publication date
 
-Do not add filtering or sorting until the number of cases makes it useful.
+Do not show internal IDs, components, severity, status or publication dates. Do not add filtering or sorting until the number of cases makes it useful.
 
 ### Case pages
 
@@ -172,19 +177,11 @@ Use a compact, generated table of contents near the top of each case page. It sh
 
 Use one vertically flowing reading column.
 
-Typical structure:
+Cases are free-form research notes. Do not require or fabricate sections merely to satisfy a template.
 
-Title
+Show the protocol, but do not force a case into one component: one case may support several checks.
 
-Protocol / Component
-
-Description
-
-Example
-
-How to address
-
-References, source or repository where relevant
+Show a compact list of related check links near the end of each case. Keep those links in the canonical case Markdown so local raw views contain them; verify them against check frontmatter and do not duplicate the check instructions inside the case.
 
 Machine-readable Markdown link at the bottom where useful.
 
@@ -388,10 +385,14 @@ Important research content must exist in Markdown or another text-native source 
 Do not bury substantive information exclusively inside React components.
 
 Maintain:
-- `/llms.txt`
+- `/llms.txt` as the canonical scanner entrypoint, output contract and complete generated scanner document
+- protocol skills as the canonical source for each protocol procedure, with check Markdown appended into `/llms.txt`
+- permanent `/SKILL.md` and `/skills.md` redirects to `/llms.txt`
+- `/checks/` as the complete human-readable check list
+- `/cases/` as the complete human-readable case list
 - stable case URLs
 - Markdown source for every case
-- predictable section headings
+- Markdown source for every check
 - structured frontmatter
 - clear links to reproductions and checks
 
@@ -422,11 +423,7 @@ When implementing new functionality such as checkers:
 
 Do not redesign the surrounding site into a product UI.
 
-Checks should appear as small utilities embedded naturally alongside relevant research.
-
-Research remains primary.
-
-Tooling remains supplementary.
+Checks should read as concise operational instructions. Cases remain separate, free-form supporting research.
 
 A checker may contain inputs, evidence and results where necessary, but it should not cause the global visual language to become dashboard-like.
 

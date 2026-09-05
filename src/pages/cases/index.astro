@@ -1,0 +1,52 @@
+---
+import { getCollection, getEntry, render } from "astro:content";
+import ProtocolIdentity from "../../components/ProtocolIdentity.astro";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+const cases = await getCollection("cases");
+const introduction = await getEntry("pages", "cases");
+
+if (!introduction) throw new Error("Missing content/cases.md");
+
+const { Content: Introduction } = await render(introduction);
+const protocols = [...new Set(cases.map((entry) => entry.data.protocol))].sort();
+---
+
+<BaseLayout
+  title="Cases — vaults.rip"
+  description="Worked research examples describing DeFi vault and market risk mechanisms."
+  canonicalPath="/cases/"
+  markdownPath="/llms.txt"
+>
+  <article class="cases-page" aria-labelledby="cases">
+    <div class="prose">
+      <Introduction />
+    </div>
+
+    {
+      protocols.map((protocol) => {
+        const protocolCases = cases
+          .filter((entry) => entry.data.protocol === protocol)
+          .sort((left, right) =>
+            left.id.localeCompare(right.id, undefined, { numeric: true }),
+          );
+
+        return (
+          <section class="case-group" aria-labelledby={`cases-${protocol.toLowerCase()}`}>
+            <div class="case-group-heading">
+              <ProtocolIdentity protocol={protocol} size="detail" />
+              <h2 id={`cases-${protocol.toLowerCase()}`}>{protocol}</h2>
+            </div>
+            <ol class="case-list">
+              {protocolCases.map((entry) => (
+                <li>
+                  <a href={`/cases/${entry.id}/`}>{entry.data.title}</a>
+                </li>
+              ))}
+            </ol>
+          </section>
+        );
+      })
+    }
+  </article>
+</BaseLayout>

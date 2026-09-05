@@ -16,13 +16,12 @@ export const GET: APIRoute = ({ props }) => {
   const metadata = [
     `Case ID: ${entry.data.caseId}`,
     `Protocol: ${entry.data.protocol}`,
-    `Component: ${entry.data.component}`,
   ];
   const content = [
     `# ${entry.data.title}`,
     metadata.join("\n"),
     entry.body?.trim() ?? "",
-  ].join("\n\n");
+  ].filter(Boolean).join("\n\n");
 
   return new Response(`${content}\n`, {
     headers: { "Content-Type": "text/plain; charset=utf-8" },

@@ -16,24 +16,33 @@ const cases = defineCollection({
     title: z.string(),
     caseId: z.string().regex(/^[a-z][a-z0-9-]*\d+$/),
     protocol: z.string().min(1),
-    component: z.string(),
   }),
 });
 
 const checks = defineCollection({
   loader: glob({
     pattern: "*/*/*.md",
-    base: "./content/protocols",
+    base: "./content/checks",
     generateId: ({ entry }) => entry.replace(/\.md$/, ""),
     retainBody: true,
   }),
   schema: z.object({
-    checkId: z.string().regex(/^[a-z][a-z0-9-]*-[a-z][a-z0-9-]*-\d+$/),
+    checkId: z.string().regex(/^[a-z][a-z0-9-]*-[a-z][a-z0-9-]*-[1-9]\d*$/),
     protocol: z.string().min(1),
     component: z.string().min(1),
     title: z.string().min(1),
     slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
     examples: z.array(z.string()).default([]),
+    cases: z.array(z.string()).default([]),
+  }),
+});
+
+const protocols = defineCollection({
+  loader: glob({ pattern: "*.md", base: "./content/protocols", retainBody: true }),
+  schema: z.object({
+    title: z.string().min(1),
+    slug: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
+    docsUrl: z.url(),
   }),
 });
 
@@ -62,4 +71,4 @@ const skills = defineCollection({
   schema: skillSchema,
 });
 
-export const collections = { pages, cases, checks, scanner, skills };
+export const collections = { pages, cases, checks, protocols, scanner, skills };

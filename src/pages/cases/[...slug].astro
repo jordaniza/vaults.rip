@@ -46,16 +46,12 @@ const description =
       <span class="case-markdown-label">View Markdown</span>
       <span class="case-markdown-arrow" aria-hidden="true">↗</span>
     </a>
-    <dl class="case-metadata" aria-label="Case metadata">
+    <dl class="case-metadata case-metadata--single" aria-label="Case metadata">
       <div>
         <dt>Protocol</dt>
         <dd>
           <ProtocolIdentity protocol={entry.data.protocol} size="detail" />
         </dd>
-      </div>
-      <div>
-        <dt>Component</dt>
-        <dd>{entry.data.component}</dd>
       </div>
     </dl>
     {

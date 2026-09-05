@@ -37,9 +37,9 @@ Morpho explains what the configuration is. vaults.rip checks what may be dangero
 
 For every applicable resolved component:
 
-- Run every check appended below.
-- Use [`../smart-contracts/SKILL.md`](../smart-contracts/SKILL.md) when a check depends on arbitrary contract behavior, control or upgradeability.
-- Use [`../etherscan/SKILL.md`](../etherscan/SKILL.md) when verified source or proxy resolution is needed.
+- Run every check appended to this skill. In the source repository, those checks live under [`content/checks/morpho-v2/`](https://github.com/jordaniza/vaults.rip/tree/main/content/checks/morpho-v2).
+- Use the [smart-contract inspection skill](https://www.vaults.rip/skills/smart-contracts/SKILL.md) when a check depends on arbitrary contract behavior, control or upgradeability.
+- Use the [Etherscan skill](https://www.vaults.rip/skills/etherscan/SKILL.md) when verified source or proxy resolution is needed.
 
 Tests are not required. A linked Foundry test may be used when it helps illustrate a check, but its result does not replace inspection of the target's deployed configuration.
 
@@ -50,4 +50,4 @@ Tests are not required. A linked Foundry test may be used when it helps illustra
 
 ## Checks
 
-Run every check appended below against every applicable market and component. The list is generated from `content/protocols/morpho/`; do not infer that an absent check has been performed.
+The generated copy of this skill and [`/llms.txt`](https://www.vaults.rip/llms.txt) append every current Morpho V2 check below. If this source file is being read directly, use the [human-readable check list](https://www.vaults.rip/checks/#protocol-morpho-v2) or load `/llms.txt` before starting the review.

@@ -9,14 +9,17 @@
     "build": "ASTRO_TELEMETRY_DISABLED=1 astro build",
     "preview": "ASTRO_TELEMETRY_DISABLED=1 astro preview",
     "check": "ASTRO_TELEMETRY_DISABLED=1 astro check",
+    "verify:dev-routes": "ASTRO_TELEMETRY_DISABLED=1 node scripts/verify-dev-routes.mjs",
     "verify:site": "node scripts/verify-site.mjs",
-    "verify": "pnpm check && pnpm build && pnpm verify:site"
+    "verify": "pnpm check && pnpm build && pnpm verify:site",
+    "prepare": "husky"
   },
   "dependencies": {
     "astro": "latest"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "husky": "^9.1.7",
     "typescript": "^6.0.3"
   }
 }

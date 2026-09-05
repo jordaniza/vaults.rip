@@ -1,9 +1,11 @@
 ---
 name: vault-scanner
-description: Inspect supported DeFi vaults and their reachable markets for documented configuration risks. Use when given a vault address or market identifier to review; currently supports Morpho Vault V2 only.
+description: Inspect supported DeFi vaults and their reachable markets for documented configuration risks. Use when given a vault address or market identifier to review.
 ---
 
 # Vault scanner
+
+vaults.rip supplies operational checks for configuration risks that may not be covered by a protocol's own documentation. `/llms.txt` is the scanner entrypoint. `/SKILL.md` and `/skills.md` redirect to it.
 
 ## Job
 
@@ -11,37 +13,44 @@ Given a chain and vault address, identify the vault's current and permitted expo
 
 Do not describe a vault as safe merely because no listed check produces a finding. Distinguish a condition that was checked from one that could not be resolved.
 
-## Scope
-
-Only Morpho Vault V2 is supported for now. The workflow is intended to extend to other vault protocols and implementations, but their interfaces and allocation models must be handled explicitly rather than assumed to match Morpho.
-
-If the target is a Morpho Vault V1, another vault implementation, or cannot be identified, report it as unsupported and stop before applying the Morpho V2 procedure.
-
 ## Required input
 
 - Chain ID
 - Vault contract address
 - Optional block number when the review must describe historical rather than current state
 
-A Morpho market ID may be used to inspect a market directly, but it is not enough to determine which vaults can allocate to that market.
+A protocol-specific market identifier may be used to inspect a market directly, but it is not enough to determine which vaults can allocate to that market.
+
+Before scanning, identify the read-only RPC URLs and explorer credentials required by the applicable checks. Inspect the current process environment and, when working from a local checkout, the available `.env` files and `.env.example`. Check variable names and whether values are present without printing, logging or otherwise exposing secret values.
+
+Use a user-supplied or official public RPC when a configured RPC URL is unavailable. Verified-source retrieval through Etherscan requires `ETHERSCAN_API_KEY`; if it is unavailable, ask for it to be supplied through the environment. Continue checks that do not depend on it and report affected checks as unresolved rather than treating missing access as a finding or a pass.
 
 ## Procedure
 
 1. Identify the target protocol and vault implementation.
-2. Read the applicable vaults.rip protocol skill. Load the official protocol skill or documentation it delegates to for current mechanics, interfaces and data access.
-3. Resolve both current allocations and destinations that the vault is permitted to allocate into.
-4. Apply every check linked by the protocol skill to each relevant component.
-5. Report unresolved contracts, unsupported adapters, missing source code, and incomplete enumeration rather than silently omitting them.
+2. Find the matching protocol section below and run every check it contains against every relevant component.
+3. Report unresolved contracts, unsupported adapters, missing source code, and incomplete enumeration rather than silently omitting them.
+4. When more context would help explain a finding, consult the specific cases linked from that check. Cases provide supporting examples and are not additional review targets.
 
-## Supported protocol
+## Check list
 
-- For Morpho Vault V2, read [`skills/morpho-v2/SKILL.md`](skills/morpho-v2/SKILL.md). It delegates protocol mechanics and data access to Morpho's maintained sources, then routes the result through the vaults.rip checks.
+The generated `/llms.txt` appends each supported protocol procedure and every current check below. Read the relevant protocol section and run each listed check; links to source files are provenance, not substitutes for the instructions in this document.
 
-## Shared skills
+The same checks are available in the [human-readable check list](https://www.vaults.rip/checks/).
 
-Load these only when the protocol procedure requires them:
+## Output
 
-- Read [`skills/smart-contracts/SKILL.md`](skills/smart-contracts/SKILL.md) when resolving contract behavior, control, or upgradeability.
-- Read [`skills/etherscan/SKILL.md`](skills/etherscan/SKILL.md) when retrieving bytecode or verified source through Etherscan's API.
+Return a short report in this shape:
 
-Foundry tests are not required for a scan. The repository may include optional tests that illustrate a check; when one is useful, follow the instructions in the [examples guide](https://github.com/jordaniza/vaults.rip/blob/main/examples/README.md).
+```text
+Target: <vault or market> on <chain>
+Checks run: <number>
+Violations found: <number>
+Warnings found: <number>
+Checks unresolved: <number>
+
+Findings
+- <VIOLATION | WARNING | UNRESOLVED> — <check ID>: <title> — <concise reason>
+```
+
+A violation means the check's issue condition was established. A warning means the available evidence is concerning but not conclusive. Do not count an unresolved check as passed. When useful, include the related case links already attached to a violated, warned or unresolved check as additional context.

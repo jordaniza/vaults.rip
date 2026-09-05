@@ -1,6 +1,5 @@
 ---
-import { getCollection, getEntry, render } from "astro:content";
-import ProtocolIdentity from "../components/ProtocolIdentity.astro";
+import { getEntry, render } from "astro:content";
 import BaseLayout from "../layouts/BaseLayout.astro";
 
 const homepage = await getEntry("pages", "index");
@@ -10,114 +9,12 @@ if (!homepage) {
 }
 
 const { Content } = await render(homepage);
-const cases = (await getCollection("cases")).sort((left, right) =>
-  left.data.title.localeCompare(right.data.title),
-);
-const protocols = [...new Set(cases.map((entry) => entry.data.protocol))].sort(
-  (left, right) => left.localeCompare(right),
-);
-const components = [...new Set(cases.map((entry) => entry.data.component))].sort(
-  (left, right) => left.localeCompare(right),
-);
 ---
 
 <BaseLayout>
-  <section class="home-copy prose" aria-labelledby="about">
+  <article class="home-copy prose">
     <Content />
-  </section>
-
-  <section id="cases" aria-labelledby="cases-title">
-    <h2 id="cases-title" class="case-heading">Cases</h2>
-    <form class="case-filters" id="case-filters" role="search">
-      <label class="case-filter">
-        <span class="visually-hidden">Keywords</span>
-        <input
-          type="search"
-          name="keywords"
-          placeholder="Search cases"
-          autocomplete="off"
-          aria-controls="case-table"
-        />
-      </label>
-      <label class="case-filter">
-        <span class="visually-hidden">Protocol</span>
-        <span class="select-control">
-          <select name="protocol" aria-controls="case-table">
-            <option value="">All protocols</option>
-            {protocols.map((protocol) => <option value={protocol}>{protocol}</option>)}
-          </select>
-        </span>
-      </label>
-      <label class="case-filter">
-        <span class="visually-hidden">Component</span>
-        <span class="select-control">
-          <select name="component" aria-controls="case-table">
-            <option value="">All components</option>
-            {components.map((component) => <option value={component}>{component}</option>)}
-          </select>
-        </span>
-      </label>
-    </form>
-    <div class="table-wrap">
-      <table id="case-table">
-        <colgroup>
-          <col class="case-column" />
-          <col class="protocol-column" />
-          <col class="component-column" />
-        </colgroup>
-        <thead>
-          <tr>
-            <th scope="col" aria-sort="ascending">
-              <button class="case-sort" type="button" data-sort-key="title">
-                Case
-                <svg class="case-sort-icon" viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M5 3v10M2.5 5.5 5 3l2.5 2.5M11 13V3m-2.5 7.5L11 13l2.5-2.5" />
-                </svg>
-              </button>
-            </th>
-            <th scope="col" aria-sort="none">
-              <button class="case-sort" type="button" data-sort-key="protocol">
-                Protocol
-                <svg class="case-sort-icon" viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M5 3v10M2.5 5.5 5 3l2.5 2.5M11 13V3m-2.5 7.5L11 13l2.5-2.5" />
-                </svg>
-              </button>
-            </th>
-            <th scope="col" aria-sort="none">
-              <button class="case-sort" type="button" data-sort-key="component">
-                Component
-                <svg class="case-sort-icon" viewBox="0 0 16 16" aria-hidden="true">
-                  <path d="M5 3v10M2.5 5.5 5 3l2.5 2.5M11 13V3m-2.5 7.5L11 13l2.5-2.5" />
-                </svg>
-              </button>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {
-            cases.map((entry) => (
-              <tr
-                class="case-row"
-                data-title={entry.data.title.toLocaleLowerCase()}
-                data-protocol={entry.data.protocol.toLocaleLowerCase()}
-                data-component={entry.data.component.toLocaleLowerCase()}
-                data-search={`${entry.data.title} ${entry.data.protocol} ${entry.data.component}`.toLocaleLowerCase()}
-              >
-                <td><a href={`/cases/${entry.id}/`}>{entry.data.title}</a></td>
-                <td class="protocol-cell">
-                  <ProtocolIdentity protocol={entry.data.protocol} />
-                </td>
-                <td>{entry.data.component}</td>
-              </tr>
-            ))
-          }
-          <tr id="case-filter-empty" hidden>
-            <td colspan="3">No cases match these filters.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </section>
+  </article>
 
   <script is:inline>
     const legacyCase = new URLSearchParams(window.location.search).get("case");
@@ -126,75 +23,5 @@ const components = [...new Set(cases.map((entry) => entry.data.component))].sort
       window.location.replace(`/cases/${legacyCase}/`);
     }
 
-    const filters = document.querySelector("#case-filters");
-    const caseTableBody = document.querySelector("#case-table tbody");
-    const emptyState = document.querySelector("#case-filter-empty");
-    const sortButtons = [...document.querySelectorAll(".case-sort")];
-
-    if (filters instanceof HTMLFormElement && caseTableBody && emptyState) {
-      const rows = [...caseTableBody.querySelectorAll(".case-row")];
-      let sortKey = "title";
-      let direction = 1;
-
-      const updateCases = () => {
-        const formData = new FormData(filters);
-        const keywords = String(formData.get("keywords") ?? "").trim().toLocaleLowerCase();
-        const protocol = String(formData.get("protocol") ?? "").toLocaleLowerCase();
-        const component = String(formData.get("component") ?? "").toLocaleLowerCase();
-        let visibleCases = 0;
-
-        rows
-          .sort((left, right) => {
-            const primary = String(left.dataset[sortKey]).localeCompare(
-              String(right.dataset[sortKey]),
-            );
-            const title = String(left.dataset.title).localeCompare(String(right.dataset.title));
-
-            return direction * (primary || title);
-          })
-          .forEach((row) => {
-            const matches =
-              (!keywords || String(row.dataset.search).includes(keywords)) &&
-              (!protocol || row.dataset.protocol === protocol) &&
-              (!component || row.dataset.component === component);
-
-            row.hidden = !matches;
-            visibleCases += Number(matches);
-            caseTableBody.append(row);
-          });
-
-        emptyState.hidden = visibleCases !== 0;
-        caseTableBody.append(emptyState);
-      };
-
-      filters.addEventListener("input", updateCases);
-      sortButtons.forEach((button) => {
-        button.addEventListener("click", () => {
-          const nextSortKey = button.dataset.sortKey;
-
-          if (!nextSortKey) return;
-
-          if (nextSortKey === sortKey) {
-            direction *= -1;
-          } else {
-            sortKey = nextSortKey;
-            direction = 1;
-          }
-
-          sortButtons.forEach((sortButton) => {
-            const header = sortButton.closest("th");
-            const isActive = sortButton.dataset.sortKey === sortKey;
-
-            header?.setAttribute(
-              "aria-sort",
-              isActive ? (direction === 1 ? "ascending" : "descending") : "none",
-            );
-          });
-
-          updateCases();
-        });
-      });
-      updateCases();
-    }
   </script>
 </BaseLayout>

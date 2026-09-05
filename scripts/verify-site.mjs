@@ -1,28 +1,14 @@
 import { access, readFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 
-const repositoryRoot = process.cwd();
-const contentRoot = path.join(repositoryRoot, "content");
+const root = process.cwd();
+const contentRoot = path.join(root, "content");
 const casesRoot = path.join(contentRoot, "cases");
-const protocolsRoot = path.join(contentRoot, "protocols");
-const examplesRoot = path.join(repositoryRoot, "examples");
-const skillsRoot = path.join(repositoryRoot, "skills");
-const publicRoot = path.join(repositoryRoot, "public");
-const outputRoot = path.join(repositoryRoot, "dist");
+const checksRoot = path.join(contentRoot, "checks");
+const examplesRoot = path.join(root, "examples");
+const publicRoot = path.join(root, "public");
+const outputRoot = path.join(root, "dist");
 const failures = [];
-
-const caseHeadingOrder = [
-  "Summary",
-  "Context",
-  "Where it goes wrong",
-  "Example",
-  "How to address",
-];
-const requiredCaseHeadings = new Set([
-  "Summary",
-  "Example",
-  "How to address",
-]);
 
 function fail(message) {
   failures.push(message);
@@ -39,7 +25,7 @@ async function exists(filePath) {
 
 async function requireFile(filePath, label) {
   if (!(await exists(filePath))) {
-    fail(`Missing ${label}: ${path.relative(repositoryRoot, filePath)}`);
+    fail(`Missing ${label}: ${path.relative(root, filePath)}`);
     return false;
   }
 
@@ -47,54 +33,88 @@ async function requireFile(filePath, label) {
 }
 
 async function walk(directory) {
+  if (!(await exists(directory))) return [];
+
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
 
   for (const entry of entries) {
     const entryPath = path.join(directory, entry.name);
-
-    if (entry.isDirectory()) {
-      files.push(...(await walk(entryPath)));
-    } else if (entry.isFile()) {
-      files.push(entryPath);
-    }
+    files.push(...(entry.isDirectory() ? await walk(entryPath) : [entryPath]));
   }
 
   return files;
 }
 
 function parseFrontmatter(markdown, fileName) {
-  const match = markdown.match(/^---\n([\s\S]*?)\n---\n/);
+  const match = markdown.match(/^---\n([\s\S]*?)\n---\n?/);
 
   if (!match) {
     fail(`${fileName} must start with YAML frontmatter.`);
-    return new Map();
+    return { data: new Map(), body: markdown };
   }
 
-  return new Map(
-    match[1].split("\n").flatMap((line) => {
-      const field = line.match(/^([A-Za-z][A-Za-z0-9]*):(?:\s*(.*))?$/);
-      return field ? [[field[1], field[2]?.trim() ?? ""]] : [];
-    }),
-  );
+  const data = new Map();
+  let currentList;
+
+  for (const line of match[1].split("\n")) {
+    const field = line.match(/^([A-Za-z][A-Za-z0-9]*):(?:\s*(.*))?$/);
+
+    if (field) {
+      const [, key, rawValue = ""] = field;
+      const value = rawValue.trim();
+
+      if (!value) {
+        currentList = [];
+        data.set(key, currentList);
+      } else if (value === "[]") {
+        currentList = [];
+        data.set(key, currentList);
+      } else {
+        currentList = undefined;
+        data.set(key, value.replace(/^(?:"(.*)"|'(.*)')$/, "$1$2"));
+      }
+      continue;
+    }
+
+    const item = line.match(/^\s+-\s+(.+)$/);
+    if (item && currentList) currentList.push(item[1].trim());
+  }
+
+  return { data, body: markdown.slice(match[0].length).trim() };
 }
 
-function escapeRegularExpression(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function value(data, field) {
+  const result = data.get(field);
+  return typeof result === "string" ? result : "";
 }
 
-function toSlug(value) {
-  return value
+function list(data, field) {
+  const result = data.get(field);
+  return Array.isArray(result) ? result : [];
+}
+
+function toSlug(input) {
+  return input
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
 }
 
+function normalizeBody(body) {
+  return body.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+function countOccurrences(document, needle) {
+  return document.split(needle).length - 1;
+}
+
+function escapeRegularExpression(input) {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 async function resolveOutputReference(sourceFile, reference) {
-  if (
-    /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(reference) ||
-    reference.startsWith("data:")
-  ) {
+  if (/^(?:[a-z][a-z0-9+.-]*:|\/\/)/i.test(reference) || reference.startsWith("data:")) {
     return;
   }
 
@@ -112,543 +132,441 @@ async function resolveOutputReference(sourceFile, reference) {
   let candidate = decodedPath.startsWith("/")
     ? path.join(outputRoot, decodedPath.slice(1))
     : path.resolve(path.dirname(sourceFile), decodedPath || path.basename(sourceFile));
-
   const candidateStats = await stat(candidate).catch(() => null);
 
   if (candidateStats?.isDirectory()) {
     candidate = path.join(candidate, "index.html");
   } else if (!candidateStats && !path.extname(candidate)) {
     const htmlCandidate = `${candidate}.html`;
-    const indexCandidate = path.join(candidate, "index.html");
-
-    if (await exists(htmlCandidate)) {
-      candidate = htmlCandidate;
-    } else {
-      candidate = indexCandidate;
-    }
+    candidate = (await exists(htmlCandidate))
+      ? htmlCandidate
+      : path.join(candidate, "index.html");
   }
 
   if (!(await exists(candidate))) {
-    fail(
-      `Dead internal reference in ${path.relative(outputRoot, sourceFile)}: ${reference}`,
-    );
+    fail(`Dead internal reference in ${path.relative(outputRoot, sourceFile)}: ${reference}`);
     return;
   }
 
   if (fragment && candidate.endsWith(".html")) {
     const targetHtml = await readFile(candidate, "utf8");
-    const idPattern = new RegExp(
-      `\\bid=["']${escapeRegularExpression(decodeURIComponent(fragment))}["']`,
-    );
+    const decodedFragment = decodeURIComponent(fragment);
+    const idPattern = new RegExp(`\\bid=["']${escapeRegularExpression(decodedFragment)}["']`);
 
     if (!idPattern.test(targetHtml)) {
-      fail(
-        `Missing fragment target in ${path.relative(outputRoot, sourceFile)}: ${reference}`,
-      );
+      fail(`Missing fragment target in ${path.relative(outputRoot, sourceFile)}: ${reference}`);
     }
   }
 }
 
-await requireFile(path.join(contentRoot, "index.md"), "homepage Markdown");
-await requireFile(path.join(contentRoot, "llms.md"), "LLM routing guidance");
-await requireFile(path.join(repositoryRoot, "SKILL.md"), "vault scanner skill");
-for (const skillName of ["morpho-v2", "etherscan", "smart-contracts"]) {
-  await requireFile(
-    path.join(skillsRoot, skillName, "SKILL.md"),
-    `${skillName} skill`,
-  );
+for (const [file, label] of [
+  ["content/index.md", "homepage Markdown"],
+  ["SKILL.md", "root scanner skill"],
+  ["skills/morpho-v2/SKILL.md", "Morpho V2 skill"],
+  ["skills/etherscan/SKILL.md", "Etherscan skill"],
+  ["skills/smart-contracts/SKILL.md", "smart-contract skill"],
+  ["foundry.toml", "Foundry configuration"],
+  ["examples/README.md", "examples guide"],
+  ["design/DESIGN_SPEC.md", "design specification"],
+  ["vercel.json", "Vercel configuration"],
+  [".husky/pre-commit", "Husky pre-commit hook"],
+]) {
+  await requireFile(path.join(root, file), label);
 }
-await requireFile(path.join(repositoryRoot, "foundry.toml"), "Foundry configuration");
-await requireFile(path.join(examplesRoot, "README.md"), "Foundry examples guide");
-await requireFile(
-  path.join(repositoryRoot, "src", "pages", "llms.txt.ts"),
-  "generated LLM endpoint",
-);
-await requireFile(path.join(repositoryRoot, "design", "DESIGN_SPEC.md"), "design specification");
-await requireFile(path.join(repositoryRoot, "vercel.json"), "Vercel configuration");
 
-const homepageMarkdown = await readFile(path.join(contentRoot, "index.md"), "utf8");
-const llmsGuideMarkdown = await readFile(path.join(contentRoot, "llms.md"), "utf8");
-const foundryConfiguration = await readFile(
-  path.join(repositoryRoot, "foundry.toml"),
-  "utf8",
-);
+if (await exists(path.join(contentRoot, "llms.md"))) {
+  fail("content/llms.md duplicates the generated scanner and must not exist.");
+}
 
+const protocolFiles = (await walk(path.join(contentRoot, "protocols"))).filter((file) => file.endsWith(".md"));
+const protocolSlugs = new Set();
+for (const file of protocolFiles) {
+  const relative = path.relative(path.join(contentRoot, "protocols"), file);
+  if (relative.split(path.sep).length !== 1) {
+    fail(`Protocol introduction must use content/protocols/<protocol>.md: ${relative}.`);
+    continue;
+  }
+  const markdown = await readFile(file, "utf8");
+  const { data, body } = parseFrontmatter(markdown, relative);
+  const fileSlug = path.basename(relative, ".md");
+  for (const field of ["title", "slug", "docsUrl"]) {
+    if (!value(data, field)) fail(`${relative} has a missing or empty ${field} field.`);
+  }
+  if (value(data, "slug") !== fileSlug) fail(`${relative} slug must match its filename.`);
+  if (!body.includes(value(data, "docsUrl"))) fail(`${relative} must link to its docsUrl in the human introduction.`);
+  if (protocolSlugs.has(fileSlug)) fail(`${relative} duplicates protocol slug: ${fileSlug}.`);
+  protocolSlugs.add(fileSlug);
+}
+
+const foundryConfiguration = await readFile(path.join(root, "foundry.toml"), "utf8");
 if (!/^test\s*=\s*["']examples["']\s*$/m.test(foundryConfiguration)) {
   fail('foundry.toml must configure test = "examples".');
 }
 
-if (/^# Cases\s*$/m.test(homepageMarkdown)) {
-  fail("content/index.md must not contain a manually maintained case index.");
+const homepageMarkdown = await readFile(path.join(contentRoot, "index.md"), "utf8");
+if (!homepageMarkdown.includes("](/checks/)") || !homepageMarkdown.includes("](/cases/)")) {
+  fail("content/index.md must link to both /checks/ and /cases/.");
 }
 
-const readme = await readFile(path.join(repositoryRoot, "README.md"), "utf8");
-const readmeWhy = readme.match(/## Why\n([\s\S]*?)(?=\n## )/)?.[0];
-const homepageWhy = homepageMarkdown.match(
-  /^## Why\n[\s\S]*?(?=\n## Using\n)/m,
-)?.[0];
-
-if (readmeWhy?.trim() !== homepageWhy?.trim()) {
+const readme = await readFile(path.join(root, "README.md"), "utf8");
+const readmeWhy = readme.match(/## Why\n([\s\S]*?)(?=\n## )/)?.[0]?.trim();
+const homepageWhy = homepageMarkdown.match(/## Why\n([\s\S]*?)(?=\n## )/)?.[0]?.trim();
+if (readmeWhy !== homepageWhy) {
   fail("README.md Why copy has drifted from content/index.md.");
 }
 
-const caseFiles = (await walk(casesRoot)).filter((filePath) =>
-  filePath.endsWith(".md"),
-);
-const casePaths = [];
+const caseFiles = (await walk(casesRoot)).filter((file) => file.endsWith(".md"));
+const cases = [];
 const caseIds = new Set();
+const casePaths = new Set();
 const protocolCaseNumbers = new Map();
 
-for (const caseFile of caseFiles) {
-  const relativeCaseFile = path.relative(casesRoot, caseFile);
-  const caseSegments = relativeCaseFile.split(path.sep);
-
-  if (caseSegments.length !== 2) {
-    fail(
-      `Case Markdown must use content/cases/<protocol>/<number>.md: ${relativeCaseFile}`,
-    );
+for (const file of caseFiles) {
+  const relative = path.relative(casesRoot, file);
+  const segments = relative.split(path.sep);
+  if (segments.length !== 2) {
+    fail(`Case Markdown must use content/cases/<protocol>/<number>.md: ${relative}`);
     continue;
   }
 
-  const [protocolSlug, caseFileName] = caseSegments;
-  const caseNumber = path.basename(caseFileName, ".md");
-  const casePath = `${protocolSlug}/${caseNumber}`;
-  const markdown = await readFile(caseFile, "utf8");
-  const frontmatter = parseFrontmatter(markdown, relativeCaseFile);
-  casePaths.push(casePath);
+  const [protocolSlug, fileName] = segments;
+  const number = path.basename(fileName, ".md");
+  const markdown = await readFile(file, "utf8");
+  const { data, body } = parseFrontmatter(markdown, relative);
+  const caseId = value(data, "caseId");
+  const casePath = `${protocolSlug}/${number}`;
 
-  const protocolNumbers = protocolCaseNumbers.get(protocolSlug) ?? [];
-  protocolNumbers.push(Number(caseNumber));
-  protocolCaseNumbers.set(protocolSlug, protocolNumbers);
-
-  for (const field of ["title", "caseId", "protocol", "component"]) {
-    if (!frontmatter.has(field)) {
-      fail(`${relativeCaseFile} is missing the ${field} frontmatter field.`);
-    }
+  for (const field of ["title", "caseId", "protocol"]) {
+    if (!value(data, field)) fail(`${relative} has a missing or empty ${field} field.`);
   }
+  if (data.has("component")) fail(`${relative} must not assign a case to one component.`);
+  if (!/^[a-z0-9-]+$/.test(protocolSlug)) fail(`${relative} has an invalid protocol directory.`);
+  if (!/^[1-9]\d*$/.test(number)) fail(`${relative} must use a positive, unpadded case number.`);
+  if (caseId !== `${protocolSlug}${number}`) fail(`${relative} must use caseId: ${protocolSlug}${number}.`);
+  if (caseIds.has(caseId)) fail(`${relative} duplicates caseId: ${caseId}.`);
+  if (toSlug(value(data, "protocol")) !== protocolSlug) fail(`${relative} protocol does not match its directory.`);
+  if (!body) fail(`${relative} has no case content.`);
 
-  for (const field of ["title", "caseId", "protocol", "component"]) {
-    if (!frontmatter.get(field)) {
-      fail(`${relativeCaseFile} has an empty ${field} frontmatter field.`);
-    }
-  }
-
-  if (!/^[a-z0-9-]+$/.test(protocolSlug)) {
-    fail(`${relativeCaseFile} has an invalid protocol directory.`);
-  }
-
-  if (!/^[1-9]\d*$/.test(caseNumber)) {
-    fail(`${relativeCaseFile} must use a positive, unpadded case number.`);
-  }
-
-  const expectedCaseId = `${protocolSlug}${caseNumber}`;
-  const caseId = frontmatter.get("caseId");
-
-  if (caseId !== expectedCaseId) {
-    fail(
-      `${relativeCaseFile} must use caseId: ${expectedCaseId} to match its path.`,
-    );
-  } else if (caseIds.has(caseId)) {
-    fail(`${relativeCaseFile} duplicates caseId: ${caseId}.`);
-  } else {
-    caseIds.add(caseId);
-  }
-
-  if (toSlug(frontmatter.get("protocol") ?? "") !== protocolSlug) {
-    fail(`${relativeCaseFile} protocol does not match its directory.`);
-  }
-
-  let previousHeadingPosition = -1;
-
-  for (const heading of caseHeadingOrder) {
-    const headingPosition = markdown.indexOf(`\n## ${heading}\n`);
-
-    if (headingPosition === -1 && requiredCaseHeadings.has(heading)) {
-      fail(`${relativeCaseFile} is missing the “${heading}” section.`);
-    } else if (
-      headingPosition !== -1 &&
-      headingPosition < previousHeadingPosition
-    ) {
-      fail(`${relativeCaseFile} has case sections out of order.`);
-    }
-
-    if (headingPosition !== -1) {
-      previousHeadingPosition = headingPosition;
-    }
-  }
-
-  const rawCasePath = path.join(
-    outputRoot,
-    "content",
-    "cases",
-    protocolSlug,
-    `${caseNumber}.md`,
-  );
-
-  await requireFile(
-    path.join(outputRoot, "cases", protocolSlug, caseNumber, "index.html"),
-    `rendered case page for ${casePath}`,
-  );
-
-  if (await requireFile(rawCasePath, `raw case Markdown for ${casePath}`)) {
-    const rawCase = await readFile(rawCasePath, "utf8");
-
-    if (!rawCase.includes(`Case ID: ${caseId}`)) {
-      fail(`Raw case Markdown is missing Case ID: ${caseId}.`);
-    }
-  }
+  caseIds.add(caseId);
+  casePaths.add(casePath);
+  cases.push({ caseId, casePath, title: value(data, "title"), file, markdown });
+  const numbers = protocolCaseNumbers.get(protocolSlug) ?? [];
+  numbers.push(Number(number));
+  protocolCaseNumbers.set(protocolSlug, numbers);
 }
 
-for (const [protocolSlug, numbers] of protocolCaseNumbers) {
+for (const [protocol, numbers] of protocolCaseNumbers) {
   numbers.sort((left, right) => left - right);
-
-  for (const [index, number] of numbers.entries()) {
-    if (number !== index + 1) {
-      fail(`${protocolSlug} case numbers must increase from 1 without gaps.`);
-      break;
-    }
+  if (numbers.some((number, index) => number !== index + 1)) {
+    fail(`${protocol} case numbers must increase from 1 without gaps.`);
   }
 }
 
-const checkFiles = (await walk(protocolsRoot)).filter((filePath) =>
-  filePath.endsWith(".md"),
-);
+const checkFiles = (await walk(checksRoot)).filter((file) => file.endsWith(".md"));
+const checks = [];
 const checkIds = new Set();
-const checkPaths = [];
+const checkBodies = new Map();
+const checkSlugs = new Set();
+const checkTitles = new Set();
+const checkNumbers = new Map();
+const referencedExamples = new Map();
 
-for (const checkFile of checkFiles) {
-  const relativeCheckFile = path.relative(protocolsRoot, checkFile);
-  const checkSegments = relativeCheckFile.split(path.sep);
-
-  if (checkSegments.length !== 3) {
-    fail(
-      `Check Markdown must use content/protocols/<protocol>/<component>/<slug>.md: ${relativeCheckFile}`,
-    );
+for (const file of checkFiles) {
+  const relative = path.relative(checksRoot, file);
+  const segments = relative.split(path.sep);
+  if (segments.length !== 3) {
+    fail(`Check Markdown must use content/checks/<protocol>/<component>/<slug>.md: ${relative}`);
     continue;
   }
 
-  const [protocolSlug, componentSlug, checkFileName] = checkSegments;
-  const checkSlug = path.basename(checkFileName, ".md");
-  const checkPath = `${protocolSlug}/${componentSlug}/${checkSlug}`;
-  const markdown = await readFile(checkFile, "utf8");
-  const frontmatter = parseFrontmatter(markdown, relativeCheckFile);
-  checkPaths.push(checkPath);
-
-  for (const field of [
-    "checkId",
-    "protocol",
-    "component",
-    "title",
-    "slug",
-    "examples",
-  ]) {
-    if (!frontmatter.has(field)) {
-      fail(`${relativeCheckFile} is missing the ${field} frontmatter field.`);
-    }
-  }
+  const [protocolSlug, componentSlug, fileName] = segments;
+  const fileSlug = path.basename(fileName, ".md");
+  const markdown = await readFile(file, "utf8");
+  const { data, body } = parseFrontmatter(markdown, relative);
+  const checkId = value(data, "checkId");
+  const title = value(data, "title");
+  const examples = list(data, "examples");
+  const relatedCases = list(data, "cases");
 
   for (const field of ["checkId", "protocol", "component", "title", "slug"]) {
-    if (!frontmatter.get(field)) {
-      fail(`${relativeCheckFile} has an empty ${field} frontmatter field.`);
+    if (!value(data, field)) fail(`${relative} has a missing or empty ${field} field.`);
+  }
+  for (const field of ["examples", "cases"]) {
+    if (!data.has(field) || !Array.isArray(data.get(field))) fail(`${relative} must declare ${field} as a list.`);
+  }
+  if (value(data, "slug") !== fileSlug) fail(`${relative} slug must match its filename.`);
+  if (toSlug(value(data, "protocol")) !== protocolSlug) fail(`${relative} protocol does not match its directory.`);
+  if (toSlug(value(data, "component")) !== componentSlug) fail(`${relative} component does not match its directory.`);
+
+  const idMatch = checkId.match(new RegExp(`^${escapeRegularExpression(protocolSlug)}-${escapeRegularExpression(componentSlug)}-([1-9]\\d*)$`));
+  if (!idMatch) fail(`${relative} checkId must use ${protocolSlug}-${componentSlug}-<number>.`);
+  if (checkIds.has(checkId)) fail(`${relative} duplicates checkId: ${checkId}.`);
+  checkIds.add(checkId);
+
+  const componentKey = `${protocolSlug}/${componentSlug}`;
+  const numbers = checkNumbers.get(componentKey) ?? [];
+  if (idMatch) numbers.push(Number(idMatch[1]));
+  checkNumbers.set(componentKey, numbers);
+
+  const slugKey = `${componentKey}/${fileSlug}`;
+  const titleKey = `${componentKey}/${title.toLowerCase()}`;
+  if (checkSlugs.has(slugKey)) fail(`${relative} duplicates a check slug within its component.`);
+  if (checkTitles.has(titleKey)) fail(`${relative} duplicates a check title within its component.`);
+  checkSlugs.add(slugKey);
+  checkTitles.add(titleKey);
+
+  if (!body) fail(`${relative} has no check instruction.`);
+  if (/^#{1,6}\s/m.test(body)) fail(`${relative} must contain one body instruction without authored headings.`);
+  if (/coming soon/i.test(body)) fail(`${relative} contains a published “Coming soon” check.`);
+  const normalized = normalizeBody(body);
+  if (checkBodies.has(normalized)) fail(`${relative} duplicates the body of ${checkBodies.get(normalized)}.`);
+  checkBodies.set(normalized, relative);
+
+  if (new Set(examples).size !== examples.length) fail(`${relative} repeats an example reference.`);
+  if (new Set(relatedCases).size !== relatedCases.length) fail(`${relative} repeats a case reference.`);
+  for (const caseId of relatedCases) {
+    if (!caseIds.has(caseId)) fail(`${relative} references unknown caseId: ${caseId}.`);
+  }
+  for (const example of examples) {
+    if (path.isAbsolute(example) || example.includes("..")) {
+      fail(`${relative} has an unsafe example path: ${example}.`);
+      continue;
     }
+    const owners = referencedExamples.get(example) ?? [];
+    owners.push(checkId);
+    referencedExamples.set(example, owners);
+    await requireFile(path.join(examplesRoot, example), `example referenced by ${relative}`);
   }
 
-  if (frontmatter.get("slug") !== checkSlug) {
-    fail(`${relativeCheckFile} slug must match its filename.`);
-  }
+  checks.push({ checkId, title, protocol: value(data, "protocol"), component: value(data, "component"), relatedCases, examples, relative });
+}
 
-  if (toSlug(frontmatter.get("protocol") ?? "") !== protocolSlug) {
-    fail(`${relativeCheckFile} protocol does not match its directory.`);
-  }
-
-  if (toSlug(frontmatter.get("component") ?? "") !== componentSlug) {
-    fail(`${relativeCheckFile} component does not match its directory.`);
-  }
-
-  const checkId = frontmatter.get("checkId") ?? "";
-  const expectedCheckIdPrefix = `${protocolSlug}-${componentSlug}-`;
-
-  if (!new RegExp(`^${escapeRegularExpression(expectedCheckIdPrefix)}[1-9]\\d*$`).test(checkId)) {
-    fail(`${relativeCheckFile} checkId must start with ${expectedCheckIdPrefix}.`);
-  } else if (checkIds.has(checkId)) {
-    fail(`${relativeCheckFile} duplicates checkId: ${checkId}.`);
-  } else {
-    checkIds.add(checkId);
-  }
-
-  const levelTwoHeadings = [...markdown.matchAll(/^##\s+(.+)$/gm)].map(
-    (match) => match[1],
+for (const protocolSlug of new Set(checks.map((check) => toSlug(check.protocol)))) {
+  await requireFile(
+    path.join(root, "skills", protocolSlug, "SKILL.md"),
+    `protocol skill for ${protocolSlug}`,
   );
-
-  if (
-    levelTwoHeadings.length !== 1 ||
-    levelTwoHeadings[0] !== "What to check"
-  ) {
-    fail(`${relativeCheckFile} must contain only one section: “What to check”.`);
-  }
-
-  const rawCheckPath = path.join(
-    outputRoot,
-    "content",
-    "protocols",
-    protocolSlug,
-    componentSlug,
-    `${checkSlug}.md`,
-  );
-
-  if (await requireFile(rawCheckPath, `raw check Markdown for ${checkPath}`)) {
-    const rawCheck = await readFile(rawCheckPath, "utf8");
-
-    if (!rawCheck.includes(`Check ID: ${checkId}`)) {
-      fail(`Raw check Markdown is missing Check ID: ${checkId}.`);
-    }
+  if (!protocolSlugs.has(protocolSlug)) {
+    fail(`Missing human-readable protocol introduction for ${protocolSlug}.`);
   }
 }
 
-const publicCaseAssetsRoot = path.join(publicRoot, "content", "cases");
-
-if (await exists(publicCaseAssetsRoot)) {
-  const caseAssetFiles = await walk(publicCaseAssetsRoot);
-
-  for (const assetFile of caseAssetFiles) {
-    const relativeAsset = path.relative(publicCaseAssetsRoot, assetFile);
-    const assetSegments = relativeAsset.split(path.sep);
-    const assetCasePath = assetSegments.slice(0, 2).join("/");
-
-    if (assetSegments.length < 3 || !casePaths.includes(assetCasePath)) {
-      fail(`Orphaned case asset without matching Markdown: ${relativeAsset}`);
-    }
-
-    const assetStats = await stat(assetFile);
-
-    if (assetStats.size === 0) {
-      fail(`Empty case asset: ${relativeAsset}`);
-    }
+for (const entry of cases) {
+  if (!checks.some((check) => check.relatedCases.includes(entry.caseId))) {
+    fail(`Orphaned case without a related check: ${entry.caseId}.`);
   }
 }
 
-for (const assetName of [
-  "vaults-rip-logo.png",
-  "vaults-rip-social-preview.png",
-]) {
-  const designAsset = await readFile(
-    path.join(repositoryRoot, "design", assetName),
-  );
+for (const [component, numbers] of checkNumbers) {
+  numbers.sort((left, right) => left - right);
+  if (numbers.some((number, index) => number !== index + 1)) {
+    fail(`${component} check IDs must increase from 1 without gaps.`);
+  }
+}
+
+for (const [example, owners] of referencedExamples) {
+  if (owners.length > 1) fail(`${example} is referenced by more than one check: ${owners.join(", ")}.`);
+}
+
+const foundryExamples = (await walk(examplesRoot)).filter((file) => file.endsWith(".t.sol"));
+for (const example of foundryExamples) {
+  const relative = path.relative(examplesRoot, example).split(path.sep).join("/");
+  if (!referencedExamples.has(relative)) fail(`Orphaned Foundry example: ${relative}.`);
+}
+
+const caseAssetsRoot = path.join(publicRoot, "content", "cases");
+for (const asset of await walk(caseAssetsRoot)) {
+  const relative = path.relative(caseAssetsRoot, asset).split(path.sep).join("/");
+  const segments = relative.split("/");
+  const casePath = segments.slice(0, 2).join("/");
+  if (segments.length < 3 || !casePaths.has(casePath)) {
+    fail(`Orphaned case asset: ${relative}.`);
+    continue;
+  }
+  const owner = cases.find((entry) => entry.casePath === casePath);
+  if (!owner?.markdown.includes(`/content/cases/${relative}`)) fail(`Case asset is not referenced by its Markdown: ${relative}.`);
+  if ((await stat(asset)).size === 0) fail(`Empty case asset: ${relative}.`);
+}
+
+for (const assetName of ["vaults-rip-logo.png", "vaults-rip-social-preview.png"]) {
+  const designAsset = await readFile(path.join(root, "design", assetName));
   const publicAsset = await readFile(path.join(publicRoot, "design", assetName));
-
-  if (!designAsset.equals(publicAsset)) {
-    fail(`Public design asset has drifted from design/${assetName}.`);
-  }
+  if (!designAsset.equals(publicAsset)) fail(`Public design asset has drifted from design/${assetName}.`);
 }
+const designMorpho = await readFile(path.join(root, "design/protocols/morpho.svg"));
+const publicMorpho = await readFile(path.join(publicRoot, "protocols/morpho.svg"));
+if (!designMorpho.equals(publicMorpho)) fail("Public Morpho logo has drifted from its design source.");
 
-const designMorphoLogo = await readFile(
-  path.join(repositoryRoot, "design", "protocols", "morpho.svg"),
-);
-const publicMorphoLogo = await readFile(
-  path.join(publicRoot, "protocols", "morpho.svg"),
-);
-
-if (!designMorphoLogo.equals(publicMorphoLogo)) {
-  fail("Public Morpho logo has drifted from design/protocols/morpho.svg.");
-}
-
-for (const outputFile of [
+for (const file of [
   "index.html",
+  "checks/index.html",
+  "cases/index.html",
   "llms.txt",
-  "SKILL.md",
-  "skills.md",
-  path.join("skills", "morpho-v2", "SKILL.md"),
-  path.join("skills", "etherscan", "SKILL.md"),
-  path.join("skills", "smart-contracts", "SKILL.md"),
-  path.join("content", "index.md"),
-]) {
-  await requireFile(path.join(outputRoot, outputFile), `build output ${outputFile}`);
-}
-
-const generatedHomepage = await readFile(path.join(outputRoot, "index.html"), "utf8");
-const generatedContentIndex = await readFile(
-  path.join(outputRoot, "content", "index.md"),
-  "utf8",
-);
-const generatedLlms = await readFile(path.join(outputRoot, "llms.txt"), "utf8");
-const generatedSkill = await readFile(path.join(outputRoot, "SKILL.md"), "utf8");
-const generatedSkillAlias = await readFile(
-  path.join(outputRoot, "skills.md"),
-  "utf8",
-);
-const generatedMorphoSkill = await readFile(
-  path.join(outputRoot, "skills", "morpho-v2", "SKILL.md"),
-  "utf8",
-);
-
-for (const [label, document] of [
-  ["SKILL.md", generatedSkill],
-  ["skills.md", generatedSkillAlias],
-  ["Morpho V2 skill", generatedMorphoSkill],
-]) {
-  if (!document.startsWith("---\nname:") || !document.includes("\ndescription:")) {
-    fail(`Generated ${label} is missing Agent Skill frontmatter.`);
-  }
-}
-
-if (!generatedLlms.includes("https://www.vaults.rip/SKILL.md")) {
-  fail("Generated llms.txt is missing the SKILL.md discovery link.");
-}
-
-for (const upstreamMorphoSource of ["https://docs.morpho.org/llms.txt"]) {
-  if (!generatedLlms.includes(upstreamMorphoSource)) {
-    fail(`Generated llms.txt is missing upstream Morpho source: ${upstreamMorphoSource}`);
-  }
-
-  if (!generatedMorphoSkill.includes(upstreamMorphoSource)) {
-    fail(`Generated Morpho V2 skill is missing upstream source: ${upstreamMorphoSource}`);
-  }
-}
-
-if (generatedSkillAlias !== generatedSkill) {
-  fail("Generated skills.md compatibility route has drifted from SKILL.md.");
-}
-
-for (const skillPath of [
+  "SKILL.md/index.html",
+  "skills.md/index.html",
+  "content/index.md",
   "skills/morpho-v2/SKILL.md",
   "skills/etherscan/SKILL.md",
   "skills/smart-contracts/SKILL.md",
 ]) {
-  if (!generatedSkill.includes(skillPath)) {
-    fail(`Generated SKILL.md is missing its skill route: ${skillPath}`);
+  await requireFile(path.join(outputRoot, file), `build output ${file}`);
+}
+
+const generatedHome = await readFile(path.join(outputRoot, "index.html"), "utf8");
+const generatedChecks = await readFile(path.join(outputRoot, "checks/index.html"), "utf8");
+const generatedCases = await readFile(path.join(outputRoot, "cases/index.html"), "utf8");
+const generatedLlms = await readFile(path.join(outputRoot, "llms.txt"), "utf8");
+const generatedMorphoSkill = await readFile(path.join(outputRoot, "skills/morpho-v2/SKILL.md"), "utf8");
+const generatedSkillRedirect = await readFile(path.join(outputRoot, "SKILL.md/index.html"), "utf8");
+const generatedSkillsRedirect = await readFile(path.join(outputRoot, "skills.md/index.html"), "utf8");
+
+for (const [route, redirect] of [["/SKILL.md", generatedSkillRedirect], ["/skills.md", generatedSkillsRedirect]]) {
+  if (!redirect.includes('url=/llms.txt') || !redirect.includes('href="/llms.txt"')) {
+    fail(`${route} does not redirect to /llms.txt in the static build.`);
+  }
+}
+if (!generatedLlms.startsWith("---\nname: vault-scanner\n")) fail("Generated scanner is missing root Agent Skill frontmatter.");
+for (const phrase of ["## Check list", "## Output", "Checks run", "Violations found", "Warnings found", "Checks unresolved", "## Checks"]) {
+  if (!generatedLlms.includes(phrase)) fail(`Generated scanner is missing: ${phrase}.`);
+}
+if (!generatedLlms.includes("https://www.vaults.rip/checks/")) {
+  fail("Generated scanner does not link to the human-readable check list.");
+}
+if (!generatedLlms.includes("https://docs.morpho.org/llms.txt")) {
+  fail("Generated scanner is missing the Morpho V2 procedure.");
+}
+for (const phrase of ["https://docs.morpho.org/llms.txt", "## Checks", "https://www.vaults.rip/skills/etherscan/SKILL.md", "https://www.vaults.rip/skills/smart-contracts/SKILL.md"]) {
+  if (!generatedMorphoSkill.includes(phrase)) fail(`Generated Morpho V2 skill is missing: ${phrase}.`);
+}
+
+for (const check of checks) {
+  if (countOccurrences(generatedLlms, `Check ID: ${check.checkId}`) !== 1) fail(`Generated scanner must include ${check.checkId} exactly once.`);
+  if (countOccurrences(generatedMorphoSkill, `Check ID: ${check.checkId}`) !== 1) fail(`Generated Morpho V2 skill must include ${check.checkId} exactly once.`);
+  if (countOccurrences(generatedChecks, `id="${check.checkId}"`) !== 1) fail(`/checks/ must include ${check.checkId} exactly once.`);
+  for (const caseId of check.relatedCases) {
+    const relatedCase = cases.find((entry) => entry.caseId === caseId);
+    if (relatedCase && !generatedChecks.includes(`/cases/${relatedCase.casePath}/`)) fail(`/checks/ is missing ${check.checkId}'s related case ${caseId}.`);
+    if (relatedCase && !generatedMorphoSkill.includes(`https://www.vaults.rip/content/cases/${relatedCase.casePath}.md`)) fail(`Morpho V2 skill is missing ${check.checkId}'s raw related case ${caseId}.`);
   }
 }
 
-if (!generatedLlms.startsWith(llmsGuideMarkdown.trim())) {
-  fail("Generated llms.txt has drifted from content/llms.md.");
-}
+for (const entry of cases) {
+  const renderedPath = path.join(outputRoot, "cases", entry.casePath, "index.html");
+  const rawPath = path.join(outputRoot, "content", "cases", `${entry.casePath}.md`);
+  await requireFile(renderedPath, `rendered case ${entry.casePath}`);
+  await requireFile(rawPath, `raw case ${entry.casePath}`);
+  if (countOccurrences(generatedCases, `/cases/${entry.casePath}/`) !== 1) fail(`/cases/ must include ${entry.casePath} exactly once.`);
 
-for (const heading of ["## Navigation", "## Cases"]) {
-  if (!generatedLlms.includes(heading)) {
-    fail(`Generated llms.txt is missing required routing section: ${heading}`);
+  if ((await exists(renderedPath)) && (await exists(rawPath))) {
+    const rendered = await readFile(renderedPath, "utf8");
+    const raw = await readFile(rawPath, "utf8");
+    const relatedChecks = checks.filter((check) => check.relatedCases.includes(entry.caseId));
+    if (!rendered.includes(`rel="alternate" type="text/plain" href="/content/cases/${entry.casePath}.md"`)) fail(`Rendered case is missing its raw alternate: ${entry.casePath}.`);
+    if (!raw.includes(`Case ID: ${entry.caseId}`)) fail(`Raw case is missing its stable ID: ${entry.casePath}.`);
+    if (!rendered.includes("Related checks") || !raw.includes("## Related checks")) {
+      fail(`Case ${entry.caseId} is missing its related-check section.`);
+    }
+    if (countOccurrences(raw, "https://www.vaults.rip/checks/#") !== relatedChecks.length) {
+      fail(`Case ${entry.caseId} related-check links have drifted from check frontmatter.`);
+    }
+    for (const check of relatedChecks) {
+      if (countOccurrences(rendered, `/checks/#${check.checkId}`) !== 1) {
+        fail(`Rendered case ${entry.caseId} must link ${check.checkId} exactly once.`);
+      }
+      if (countOccurrences(raw, `https://www.vaults.rip/checks/#${check.checkId}`) !== 1) {
+        fail(`Raw case ${entry.caseId} must link ${check.checkId} exactly once.`);
+      }
+    }
   }
 }
 
-if (generatedLlms.includes("## Why") || generatedLlms.includes("## Using")) {
-  fail("Generated llms.txt must not duplicate the homepage overview sections.");
-}
-
-if (!generatedHomepage.includes('rel="describedby" href="/llms.txt"')) {
-  fail("Homepage does not advertise /llms.txt with rel=describedby.");
-}
-
-if (
-  !generatedHomepage.includes(
-    'rel="alternate" type="text/plain" href="/content/index.md"',
-  )
-) {
-  fail("Homepage does not advertise its raw Markdown alternate.");
-}
-
-const vercelConfiguration = JSON.parse(
-  await readFile(path.join(repositoryRoot, "vercel.json"), "utf8"),
-);
-const llmsResponseHeader = vercelConfiguration.headers
-  ?.flatMap((rule) => rule.headers ?? [])
-  .find((header) => header.key?.toLowerCase() === "link");
-
-if (!llmsResponseHeader?.value?.includes('</llms.txt>; rel="describedby"')) {
-  fail("Vercel responses do not advertise /llms.txt with rel=describedby.");
-}
-
-for (const source of [
-  "/llms.txt",
-  "/SKILL.md",
-  "/skills.md",
-  "/skills/(.*).md",
-  "/content/index.md",
-  "/content/cases/(.*).md",
-  "/content/protocols/(.*).md",
-]) {
-  const rule = vercelConfiguration.headers?.find((entry) => entry.source === source);
-  const contentType = rule?.headers?.find(
-    (header) => header.key?.toLowerCase() === "content-type",
-  );
-
-  if (contentType?.value !== "text/plain; charset=utf-8") {
-    fail(`Vercel does not serve ${source} as UTF-8 plain text.`);
-  }
-}
-
-for (const casePath of casePaths) {
-  if (!generatedHomepage.includes(`/cases/${casePath}/`)) {
-    fail(`Homepage is missing generated case link: ${casePath}`);
-  }
-
-  if (!generatedContentIndex.includes(`/content/cases/${casePath}.md`)) {
-    fail(`Raw content index is missing generated case link: ${casePath}`);
-  }
-
-  if (!generatedLlms.includes(`https://www.vaults.rip/content/cases/${casePath}.md`)) {
-    fail(`Generated llms.txt is missing direct case link: ${casePath}`);
-  }
-
-  const generatedCase = await readFile(
-    path.join(outputRoot, "cases", casePath, "index.html"),
-    "utf8",
-  );
-
-  if (!generatedCase.includes('rel="describedby" href="/llms.txt"')) {
-    fail(`Rendered case does not advertise /llms.txt: ${casePath}`);
-  }
-
-  if (
-    !generatedCase.includes(
-      `rel="alternate" type="text/plain" href="/content/cases/${casePath}.md"`,
-    )
-  ) {
-    fail(`Rendered case does not advertise its raw Markdown alternate: ${casePath}`);
-  }
-
-  if (
-    !generatedCase.includes('class="case-return"') ||
-    !generatedCase.includes('class="case-return-label">Home</span>') ||
-    !generatedCase.includes('class="case-return-arrow" aria-hidden="true">←</span>')
-  ) {
-    fail(`Rendered case does not include return-to-home navigation: ${casePath}`);
-  }
-}
-
-for (const checkPath of checkPaths) {
-  if (
-    !generatedMorphoSkill.includes(
-      `https://www.vaults.rip/content/protocols/${checkPath}.md`,
-    )
-  ) {
-    fail(`Generated Morpho V2 skill is missing direct check link: ${checkPath}`);
-  }
-}
-
-const outputFiles = await walk(outputRoot);
-
-for (const outputFile of outputFiles.filter((filePath) =>
-  filePath.endsWith(".html"),
+const allowedHumanCasePages = new Set([
+  "",
+  "custom-oracle-control",
+  "oracle-price-manipulation",
+  ...cases.map((entry) => entry.casePath),
+]);
+for (const outputFile of (await walk(path.join(outputRoot, "cases"))).filter(
+  (file) => path.basename(file) === "index.html",
 )) {
-  const html = await readFile(outputFile, "utf8");
-  const references = [...html.matchAll(/\b(?:href|src)=["']([^"']+)["']/g)].map(
-    (match) => match[1],
-  );
+  const route = path
+    .relative(path.join(outputRoot, "cases"), path.dirname(outputFile))
+    .split(path.sep)
+    .join("/");
+  const normalizedRoute = route === "." ? "" : route;
+  if (!allowedHumanCasePages.has(normalizedRoute)) fail(`Orphaned generated case page: /cases/${normalizedRoute}/.`);
+}
 
-  for (const reference of references) {
-    await resolveOutputReference(outputFile, reference);
+for (const outputFile of (await walk(path.join(outputRoot, "checks"))).filter(
+  (file) => file.endsWith(".html"),
+)) {
+  const route = path.relative(path.join(outputRoot, "checks"), outputFile).split(path.sep).join("/");
+  if (route !== "index.html") fail(`Unexpected individual check page: /checks/${route}.`);
+}
+
+const allowedRawCaseFiles = new Set(cases.map((entry) => `${entry.casePath}.md`));
+for (const outputFile of (await walk(path.join(outputRoot, "content", "cases"))).filter(
+  (file) => file.endsWith(".md"),
+)) {
+  const route = path.relative(path.join(outputRoot, "content", "cases"), outputFile).split(path.sep).join("/");
+  if (!allowedRawCaseFiles.has(route)) fail(`Orphaned generated raw case: /content/cases/${route}.`);
+}
+
+if (!generatedHome.includes('rel="describedby" href="/llms.txt"')) fail("Homepage does not advertise /llms.txt.");
+for (const route of ["/checks/", "/cases/"]) {
+  if (!generatedHome.includes(`href="${route}"`)) fail(`Homepage is missing ${route}.`);
+}
+for (const entry of cases) {
+  if (generatedHome.includes(`/cases/${entry.casePath}/`)) fail("Homepage must not duplicate the generated case index.");
+}
+
+const vercel = JSON.parse(await readFile(path.join(root, "vercel.json"), "utf8"));
+const linkHeader = vercel.headers?.flatMap((rule) => rule.headers ?? []).find((header) => header.key?.toLowerCase() === "link");
+if (!linkHeader?.value?.includes('</llms.txt>; rel="describedby"')) fail("Vercel responses do not advertise /llms.txt.");
+for (const source of ["/llms.txt", "/skills/(.*).md", "/content/index.md", "/content/cases/(.*).md"]) {
+  const rule = vercel.headers?.find((entry) => entry.source === source);
+  const contentType = rule?.headers?.find((header) => header.key?.toLowerCase() === "content-type");
+  if (contentType?.value !== "text/plain; charset=utf-8") fail(`Vercel does not serve ${source} as UTF-8 plain text.`);
+}
+for (const source of ["/SKILL.md", "/skills.md"]) {
+  const redirect = vercel.redirects?.find((entry) => entry.source === source);
+  if (redirect?.destination !== "/llms.txt" || redirect?.permanent !== true) {
+    fail(`Vercel does not permanently redirect ${source} to /llms.txt.`);
   }
 }
 
-if (failures.length > 0) {
-  console.error("Site verification failed:\n");
+if (!generatedChecks.includes("https://docs.morpho.org/llms.txt")) {
+  fail("Human-readable Morpho V2 checks do not link to Morpho documentation.");
+}
 
-  for (const failure of failures) {
-    console.error(`- ${failure}`);
+const astroConfig = await readFile(path.join(root, "astro.config.mjs"), "utf8");
+const middleware = await readFile(path.join(root, "src/middleware.ts"), "utf8");
+if (!astroConfig.includes("machineRouteDevHeaders")) fail("Astro dev is missing the machine-route preflight workaround.");
+if (!astroConfig.includes('request.headers.accept = "text/plain,*/*"') || !astroConfig.includes("middlewares.stack.unshift")) {
+  fail("Astro dev does not classify browser Markdown requests ahead of its root-file route guard.");
+}
+if (!middleware.includes('text/plain; charset=utf-8')) fail("Astro middleware does not enforce plain-text machine routes.");
+
+const packageJson = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+if (packageJson.scripts?.prepare !== "husky") fail('package.json must run Husky from the "prepare" script.');
+if (!packageJson.devDependencies?.husky) fail("husky must be a development dependency.");
+if (await exists(path.join(root, ".husky/pre-commit"))) {
+  const hook = await readFile(path.join(root, ".husky/pre-commit"), "utf8");
+  if (hook.trim() !== "pnpm verify && pnpm verify:dev-routes") {
+    fail(".husky/pre-commit must fail fast while running pnpm verify and pnpm verify:dev-routes.");
   }
+}
 
+for (const outputFile of (await walk(outputRoot)).filter((file) => file.endsWith(".html"))) {
+  const html = await readFile(outputFile, "utf8");
+  const references = [...html.matchAll(/\b(?:href|src)=["']([^"']+)["']/g)].map((match) => match[1]);
+  for (const reference of references) await resolveOutputReference(outputFile, reference);
+}
+
+if (failures.length) {
+  console.error("Site verification failed:\n");
+  for (const failure of failures) console.error(`- ${failure}`);
   process.exitCode = 1;
 } else {
-  console.log(
-    `Site verification passed: ${casePaths.length} case, generated routes, content placement, and internal links are valid.`,
-  );
+  console.log(`Site verification passed: ${checks.length} checks and ${cases.length} cases have valid sources, relationships, routes, and internal links.`);
 }
