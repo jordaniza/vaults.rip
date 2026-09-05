@@ -158,6 +158,13 @@ const structuredData = {
       });
 
       document
+        .querySelectorAll('a[href^="https://www.vaults.rip/"]')
+        .forEach((link) => {
+          const url = new URL(link.href);
+          link.href = `${url.pathname}${url.search}${url.hash}`;
+        });
+
+      document
         .querySelectorAll('a[href^="https://"], a[href^="http://"]')
         .forEach((link) => {
           link.target = "_blank";
