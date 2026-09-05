@@ -25,7 +25,7 @@ Ask your LLM to read [AGENTS.md](./AGENTS.md), or read [CONTRIBUTING.md](./CONTR
 - `/llms.txt` is the canonical scanner entrypoint and report contract. It includes each supported protocol procedure and its complete check list in one document. `/SKILL.md` and `/skills.md` permanently redirect to it.
 - Individual cases remain available as HTML at `/cases/<protocol>/<number>/` and plain-text Markdown at `/content/cases/<protocol>/<number>.md`.
 
-All substantive site content is rendered from Markdown. The human Morpho V2 section links to Morpho's documentation; the machine scanner links to the local Morpho V2 skill, which delegates protocol mechanics upstream.
+All substantive site content is rendered from Markdown.
 
 ## Development and verification
 

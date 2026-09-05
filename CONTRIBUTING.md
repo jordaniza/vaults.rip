@@ -9,7 +9,7 @@ Rough case research is welcome. Write it as Markdown, then ask an LLM to read `A
 
 ## Add a check
 
-Create `content/checks/<protocol>/<component>/<slug>.md` using:
+Browse the [checks folder](./content/checks/), then create `content/checks/<protocol>/<component>/<slug>.md` using:
 
 ```md
 ---
@@ -28,9 +28,11 @@ cases:
 
 The check links to relevant cases through `cases`. Add the reciprocal absolute check link under `## Related checks` at the end of each referenced case; verification prevents these lists from drifting.
 
+For example, [`settable-price.md`](./content/checks/morpho-v2/oracles/settable-price.md) has the stable check ID `morpho-v2-oracles-2` and links to the case ID `morpho1` through its `cases` list.
+
 ## Add a case
 
-Create `content/cases/<protocol>/<next-number>.md` using:
+Browse the [cases folder](./content/cases/), then create `content/cases/<protocol>/<next-number>.md` using:
 
 ```md
 ---
@@ -50,7 +52,13 @@ Cases do not require fixed headings. Put case images in `public/content/cases/<p
 
 After adding the case, add its `caseId` to each check it supports. If the required check does not exist, add that check as well.
 
-Foundry examples are optional. If one makes a check easier to understand, put it under `examples/<protocol>/<component>/` and add its relative path to the check's `examples` list.
+For example, [`morpho/1.md`](./content/cases/morpho/1.md) declares the stable case ID `morpho1` and links back to `morpho-v2-oracles-2` under `## Related checks`.
+
+## Add an example
+
+Foundry examples are optional. Browse the [examples folder](./examples/). If an example makes a check easier to understand, put it under `examples/<protocol>/<component>/` and add its path relative to `examples/` to the check's `examples` list.
+
+For example, [`SettableOracle.t.sol`](./examples/morpho/oracles/SettableOracle.t.sol) is referenced by `settable-price.md` as `morpho/oracles/SettableOracle.t.sol`.
 
 ## Verify
 

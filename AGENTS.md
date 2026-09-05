@@ -18,7 +18,7 @@ Checks are strict scanner instructions. Every check has non-empty `checkId`, `pr
 
 Use a stable check ID in the form `<protocol>-<component>-<number>`. Numbers start at `1` and increase independently within each component. The public Morpho Vault V2 protocol slug is `morpho-v2`.
 
-The check owns its case and example relationships. `cases` contains stable case IDs such as `morpho1`; `examples` contains paths relative to `examples/`. Each referenced case must also end with a `## Related checks` list containing the matching absolute `/checks/#<checkId>` links. This deliberate duplication keeps the canonical Markdown useful when Vite serves it through `?raw`; `pnpm verify` prevents the two directions from drifting. Do not copy check instructions into a case.
+The check owns its case and example relationships. `cases` contains stable case IDs such as `morpho1`; `examples` contains paths relative to `examples/`. Each referenced case must also end with a `## Related checks` list containing the matching absolute `/checks/#<checkId>` links. In other words, checks link to cases by `caseId`, and cases link back to checks by `checkId`. This deliberate duplication keeps the canonical Markdown useful when Vite serves it through `?raw`; `pnpm verify` prevents the two directions from drifting. Do not copy check instructions into a case.
 
 Cases are free-form research. Every case has non-empty `title`, `caseId` and `protocol` frontmatter. Do not assign a case to one component and do not require a fixed section schema. Put cases at `content/cases/<protocol>/<number>.md`, using unpadded numbers that start at `1` for each protocol. `caseId` is the protocol slug followed by its number and remains stable when the title changes.
 
