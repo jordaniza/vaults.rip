@@ -4,7 +4,7 @@ These rules are part of the product specification. Follow them when creating or 
 
 ## 1. What this site is
 
-vaults.rip is a technical knowledge base for DeFi vault and market risk.
+vaults.rip is an open-source, community-maintained set of checks for LLMs and humans to verify if a DeFi vault is misconfigured.
 
 It is not:
 - a SaaS product

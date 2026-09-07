@@ -1,6 +1,6 @@
 # About
 
-vaults.rip is an LLM-first collection of checks for examining whether a DeFi vault is misconfigured.
+vaults.rip is an open-source, community-maintained set of checks for LLMs and humans to verify if a DeFi vault is misconfigured.
 
 ## Why
 

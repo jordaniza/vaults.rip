@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./design/vaults-rip-social-preview.png" alt="vaults.rip — An LLM-first collection of checks for examining DeFi vault configuration." width="720" />
+  <img src="./design/vaults-rip-social-preview.png" alt="vaults.rip — An open-source, community-maintained set of checks for LLMs and humans to verify if a DeFi vault is misconfigured." width="720" />
 </p>
 
 ## Why
